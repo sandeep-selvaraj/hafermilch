@@ -1,0 +1,39 @@
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[project]
+name = "hafermilch"
+dynamic = ["version"]
+description = "Multi-persona LLM agents that evaluate your product's UI/UX"
+requires-python = ">=3.11"
+dependencies = [
+    "pydantic>=2.0",
+    "pydantic-settings>=2.0",
+    "playwright>=1.40",
+    "openai>=1.0",
+    "google-genai>=1.0",
+    "ollama>=0.3",
+    "pyyaml>=6.0",
+    "typer>=0.12",
+    "rich>=13.0",
+]
+
+[project.scripts]
+hafermilch = "hafermilch.cli:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/hafermilch"]
+
+[tool.hatch.version]
+source = "vcs"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
