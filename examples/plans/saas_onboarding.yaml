@@ -1,0 +1,55 @@
+name: saas_onboarding
+description: >
+  Evaluates the sign-up, onboarding, and core feature experience for a typical
+  SaaS product. Swap target_url to point at any product you want to test.
+
+# The product URL to evaluate. Override this with your own product's URL.
+target_url: "https://automationexercise.com/"
+
+# Reference personas by their `name` field (must exist in --personas-dir)
+personas:
+  - tech_expert
+  - office_clerk
+  - startup_founder
+
+tasks:
+  - name: landing_page
+    description: First impression and value proposition
+    steps:
+      - instruction: >
+          You have just arrived at the homepage for the first time. Take in the
+          landing page. Note your first impression, what the product claims to do,
+          and whether the value proposition is immediately clear.
+        max_actions: 3
+
+  - name: sign_up
+    description: Registration flow
+    steps:
+      - instruction: >
+          Find the sign-up or get-started button and begin the registration process.
+          Use realistic test credentials (e.g. name: "Taylor Demo",
+          email: "taylor@example.com", password: "Demo1234!").
+          Note any friction, confusing fields, or unclear error messages.
+        max_actions: 10
+
+  - name: onboarding
+    description: Post-signup onboarding experience
+    steps:
+      - instruction: >
+          After signing up, go through any onboarding wizard, guided tour, or
+          empty-state prompts. Note whether the path to value is clear and whether
+          you feel guided or lost.
+        max_actions: 8
+
+  - name: core_feature
+    description: Explore and use the main feature of the product
+    steps:
+      - instruction: >
+          Navigate to what appears to be the primary feature of the product.
+          Try to use it as a real user would on day one. Note friction,
+          missing affordances, or moments of delight.
+        max_actions: 10
+      - instruction: >
+          Try to find and understand the settings or configuration options.
+          Are they discoverable? Do they make sense?
+        max_actions: 6
