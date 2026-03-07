@@ -21,6 +21,12 @@ Copy the environment file and add your API keys:
 cp .env.example .env
 ```
 
+For the agent-browser backend (optional), also install the CLI:
+
+```bash
+npm install -g @vercel-labs/agent-browser
+```
+
 ---
 
 ## Concepts
@@ -30,6 +36,51 @@ cp .env.example .env
 **Plan** — what to test. Defines the target URL, which personas to use, and the tasks/steps to execute. Stored in `examples/plans/`.
 
 This separation means you define a persona once and point it at any product by swapping the plan.
+
+---
+
+## Browser backends
+
+hafermilch supports two browser backends, selectable with `--browser`.
+
+### Playwright (default)
+
+Playwright runs a real Chromium browser as a Python-native library. It interacts with pages using **CSS selectors and ARIA roles**, which makes it precise and deterministic — great for products where you can predict the DOM structure or want strict control over what gets clicked.
+
+Best for:
+- Authenticated flows (login, forms, checkout) where selectors are stable
+- Regression testing — comparing scores across deploys
+- Environments where you do not want Node.js as a dependency
+
+```bash
+uv run hafermilch run examples/plans/saas_onboarding.yaml --browser playwright
+```
+
+### agent-browser
+
+[agent-browser](https://github.com/vercel-labs/agent-browser) (Vercel Labs) is a Rust CLI purpose-built for AI agents. Its `snapshot` command returns an accessibility tree where every interactive element has a short **`@ref`** handle (e.g. `@e1`, `@e3`). The LLM picks refs directly from what it sees — no CSS selectors, no guessing at DOM structure.
+
+Best for:
+- Exploratory evaluations on unfamiliar products where selectors are unknown
+- Semantic, human-like navigation ("click the button labelled Sign in") rather than implementation-level targeting
+- Products that use heavy JS frameworks where CSS selectors are unstable or generated
+
+```bash
+uv run hafermilch run examples/plans/saas_onboarding.yaml --browser agent-browser
+```
+
+### Which one to pick?
+
+| | Playwright | agent-browser |
+| --- | --- | --- |
+| Selector style | CSS / ARIA role | `@ref` from snapshot |
+| LLM needs to know DOM? | Yes | No |
+| Stability on JS-heavy apps | Can be brittle | More resilient |
+| Extra install | `playwright install chromium` | `npm i -g @vercel-labs/agent-browser` |
+| Vision support | Yes | Yes |
+| Headless control | `--no-headless` flag | Managed by daemon |
+
+In practice: start with **Playwright** for products you own and know. Switch to **agent-browser** when evaluating third-party products or when the LLM keeps choosing wrong selectors.
 
 ---
 
@@ -162,7 +213,8 @@ uv run hafermilch --version          Show version
 | ---- | ------- | ----------- |
 | `--personas-dir` / `-p` | `examples/personas` | Directory of persona YAML files |
 | `--output` / `-o` | `reports` | Directory to write reports into |
-| `--headless / --no-headless` | headless | Show or hide the browser window |
+| `--browser` / `-b` | `playwright` | Browser backend: `playwright` or `agent-browser` |
+| `--headless / --no-headless` | headless | Show or hide the browser window (Playwright only) |
 | `--verbose` / `-v` | off | Enable debug logging |
 
 **`validate` options:**
