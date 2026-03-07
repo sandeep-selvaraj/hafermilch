@@ -11,6 +11,7 @@ from rich.logging import RichHandler
 from rich.table import Table
 
 from hafermilch import __version__
+from hafermilch.browser.factory import BrowserBackend
 from hafermilch.core.exceptions import HafermilchError
 from hafermilch.evaluation.runner import EvaluationRunner
 from hafermilch.personas.loader import (
@@ -51,6 +52,10 @@ def run(
         Path,
         typer.Option("--output", "-o", help="Directory to write reports into."),
     ] = Path("reports"),
+    browser: Annotated[
+        BrowserBackend,
+        typer.Option("--browser", "-b", help="Browser backend to use."),
+    ] = "playwright",
     headless: Annotated[
         bool,
         typer.Option("--headless/--no-headless", help="Run browser in headless mode."),
@@ -74,11 +79,15 @@ def run(
     console.rule(f"[bold]hafermilch v{__version__}[/bold]")
     console.print(f"Plan:     [cyan]{evaluation_plan.name}[/cyan]")
     console.print(f"Target:   [cyan]{evaluation_plan.target_url}[/cyan]")
+    console.print(f"Browser:  [cyan]{browser}[/cyan]")
     console.print(f"Personas: {', '.join(p.display_name for p in resolved)}\n")
 
     try:
         report = asyncio.run(
-            EvaluationRunner(headless=headless).run(evaluation_plan, resolved)
+            EvaluationRunner(
+                browser_backend=browser,
+                headless=headless,
+            ).run(evaluation_plan, resolved)
         )
     except HafermilchError as exc:
         console.print(f"[red]Evaluation error:[/red] {exc}")
