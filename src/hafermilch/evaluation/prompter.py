@@ -4,21 +4,6 @@ from hafermilch.browser.context import PageContext
 from hafermilch.core.models import BrowserAction, Persona, TaskStep
 from hafermilch.llm.base import Message
 
-_ACTION_SCHEMA_HINT = """
-{
-  "observation": "What you notice about this page, in your own voice",
-  "reasoning": "Why you are taking the next action",
-  "action_type": "click | type | scroll | navigate | wait | done",
-  "selector": "CSS selector or accessible name (required for click/type)",
-  "text": "Text to enter (required for type)",
-  "url": "Destination URL (required for navigate)",
-  "direction": "up | down (required for scroll)",
-  "amount": 300,
-  "wait_ms": 1000
-}
-Use action_type 'done' when you have completed the instruction or cannot proceed.
-"""
-
 _REPORT_SCHEMA_HINT = """
 {
   "overall_score": 7.5,
@@ -29,6 +14,21 @@ _REPORT_SCHEMA_HINT = """
   "recommendations": ["Specific, actionable suggestion 1", "..."]
 }
 Scores are from 0 (terrible) to 10 (excellent).
+"""
+
+_ACTION_SCHEMA_TEMPLATE = """\
+{{
+  "observation": "What you notice about this page, in your own voice",
+  "reasoning": "Why you are taking the next action",
+  "action_type": "click | type | scroll | navigate | wait | done",
+  "selector": "{selector_hint}",
+  "text": "Text to enter (required for type)",
+  "url": "Destination URL (required for navigate)",
+  "direction": "up | down (required for scroll)",
+  "amount": 300,
+  "wait_ms": 1000
+}}
+Use action_type 'done' when you have completed the instruction or cannot proceed.
 """
 
 
@@ -56,10 +56,13 @@ class Prompter:
         persona: Persona,
         context: PageContext,
         step: TaskStep,
+        selector_hint: str,
         include_screenshot: bool = True,
     ) -> list[Message]:
         """Return the full message list for a single action decision."""
         system = self.build_system_prompt(persona)
+
+        schema_hint = _ACTION_SCHEMA_TEMPLATE.format(selector_hint=selector_hint)
 
         page_parts = context.to_llm_parts(include_screenshot=include_screenshot)
         page_parts.append(
@@ -68,7 +71,7 @@ class Prompter:
                 "text": (
                     f"\nYour current instruction: {step.instruction}\n\n"
                     f"Respond with a JSON object that matches this schema:\n"
-                    f"{_ACTION_SCHEMA_HINT}"
+                    f"{schema_hint}"
                 ),
             }
         )
