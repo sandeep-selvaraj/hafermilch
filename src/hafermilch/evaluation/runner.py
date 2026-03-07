@@ -3,10 +3,10 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from playwright.async_api import async_playwright
 from pydantic import BaseModel, Field
 
-from hafermilch.browser.agent import BrowserAgent
+from hafermilch.browser.base import BaseBrowserAgent
+from hafermilch.browser.factory import BrowserBackend, create_browser_agent
 from hafermilch.core.exceptions import EvaluationError
 from hafermilch.core.models import (
     BrowserAction,
@@ -36,12 +36,16 @@ class _LLMReport(BaseModel):
 
 
 class EvaluationRunner:
-    """Orchestrates personas, browser, and LLM providers to produce reports."""
+    """Orchestrates personas, browser agents, and LLM providers."""
 
-    def __init__(self, headless: bool = True) -> None:
+    def __init__(
+        self,
+        browser_backend: BrowserBackend = "playwright",
+        headless: bool = True,
+    ) -> None:
+        self._browser_backend = browser_backend
         self._headless = headless
         self._prompter = Prompter()
-        self._browser_agent = BrowserAgent()
 
     async def run(
         self,
@@ -52,7 +56,11 @@ class EvaluationRunner:
         persona_reports: list[PersonaReport] = []
 
         for persona in personas:
-            logger.info("Starting evaluation — persona: %s", persona.display_name)
+            logger.info(
+                "Starting evaluation — persona: %s [browser: %s]",
+                persona.display_name,
+                self._browser_backend,
+            )
             try:
                 report = await self._run_persona(persona, plan)
                 persona_reports.append(report)
@@ -73,27 +81,22 @@ class EvaluationRunner:
         provider = LLMProviderFactory.create(persona.llm)
         all_findings: list[Finding] = []
 
-        async with async_playwright() as pw:
-            browser = await pw.chromium.launch(headless=self._headless)
-            ctx = await browser.new_context(viewport={"width": 1280, "height": 800})
-            page = await ctx.new_page()
-
+        agent = create_browser_agent(self._browser_backend, self._headless)
+        async with agent:
             for task in plan.tasks:
                 start_url = task.start_url or plan.target_url
                 logger.info("  Task: %s → %s", task.name, start_url)
-                await page.goto(start_url, wait_until="domcontentloaded")
+                await agent.navigate(start_url)
 
                 for step in task.steps:
                     findings = await self._run_step(
-                        page=page,
+                        agent=agent,
                         persona=persona,
                         provider=provider,
                         task=task,
                         step=step,
                     )
                     all_findings.extend(findings)
-
-            await browser.close()
 
         return await self._build_persona_report(
             persona=persona,
@@ -104,22 +107,22 @@ class EvaluationRunner:
 
     async def _run_step(
         self,
-        page: Any,
+        agent: BaseBrowserAgent,
         persona: Persona,
         provider: LLMProvider,
         task: Task,
         step: TaskStep,
     ) -> list[Finding]:
         findings: list[Finding] = []
-        use_vision = provider.supports_vision
 
         for action_num in range(step.max_actions):
-            page_ctx = await self._browser_agent.capture(page)
+            page_ctx = await agent.capture()
             messages = self._prompter.build_action_prompt(
                 persona=persona,
                 context=page_ctx,
                 step=step,
-                include_screenshot=use_vision,
+                selector_hint=agent.selector_hint,
+                include_screenshot=provider.supports_vision,
             )
 
             logger.debug(
@@ -145,7 +148,7 @@ class EvaluationRunner:
                 break
 
             try:
-                await self._browser_agent.execute(page, action)
+                await agent.execute(action)
             except Exception as exc:
                 logger.warning("    Browser action failed: %s", exc)
                 findings[-1].observation += f" [action failed: {exc}]"
