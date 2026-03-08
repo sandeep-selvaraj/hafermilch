@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import tempfile
 import uuid
@@ -42,10 +43,8 @@ class AgentBrowserAgent(BaseBrowserAgent):
         pass
 
     async def stop(self) -> None:
-        try:
+        with contextlib.suppress(BrowserError):
             await self._run("close")
-        except BrowserError:
-            pass  # session may already be gone
 
     async def navigate(self, url: str) -> None:
         await self._run("open", url)
@@ -144,14 +143,12 @@ class AgentBrowserAgent(BaseBrowserAgent):
             )
         except FileNotFoundError as exc:
             raise BrowserError(
-                "agent-browser CLI not found on PATH. "
-                "Install it with: npm install -g agent-browser"
+                "agent-browser CLI not found on PATH. Install it with: npm install -g agent-browser"
             ) from exc
 
         stdout, stderr = await proc.communicate()
         if proc.returncode != 0:
             raise BrowserError(
-                f"agent-browser command failed ({' '.join(args)}): "
-                f"{stderr.decode().strip()}"
+                f"agent-browser command failed ({' '.join(args)}): {stderr.decode().strip()}"
             )
         return stdout.decode()

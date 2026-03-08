@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from hafermilch.browser.context import PageContext
-from hafermilch.core.models import BrowserAction, Persona, TaskStep
+from hafermilch.core.models import Persona, TaskStep
 from hafermilch.llm.base import Message
 
 _REPORT_SCHEMA_HINT = """

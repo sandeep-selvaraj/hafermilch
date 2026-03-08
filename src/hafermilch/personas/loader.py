@@ -56,8 +56,7 @@ def resolve_plan_personas(
         if name not in personas:
             available = ", ".join(personas.keys()) or "none"
             raise PersonaLoadError(
-                f"Plan references unknown persona '{name}'. "
-                f"Available: {available}"
+                f"Plan references unknown persona '{name}'. Available: {available}"
             )
         resolved.append(personas[name])
     return resolved

@@ -8,9 +8,7 @@ try:
     from google import genai
     from google.genai import types as genai_types
 except ImportError as exc:  # pragma: no cover
-    raise ImportError(
-        "Install 'google-genai' to use the Gemini provider."
-    ) from exc
+    raise ImportError("Install 'google-genai' to use the Gemini provider.") from exc
 
 _VISION_MODELS = {
     "gemini-1.5-pro",
@@ -26,9 +24,7 @@ class GeminiProvider(LLMProvider):
     def __init__(self, model: str, temperature: float, api_key: str | None) -> None:
         self._model_name = model
         self._temperature = temperature
-        self._client = genai.Client(
-            api_key=api_key or settings.google_api_key
-        )
+        self._client = genai.Client(api_key=api_key or settings.google_api_key)
 
     @property
     def supports_vision(self) -> bool:

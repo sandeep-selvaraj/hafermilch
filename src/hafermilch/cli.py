@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from pathlib import Path
-from typing import Annotated, Optional
+from typing import Annotated
 
 import typer
 from rich.console import Console
@@ -74,7 +74,7 @@ def run(
         resolved = resolve_plan_personas(evaluation_plan, all_personas)
     except HafermilchError as exc:
         console.print(f"[red]Configuration error:[/red] {exc}")
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from None
 
     console.rule(f"[bold]hafermilch v{__version__}[/bold]")
     console.print(f"Plan:     [cyan]{evaluation_plan.name}[/cyan]")
@@ -91,7 +91,7 @@ def run(
         )
     except HafermilchError as exc:
         console.print(f"[red]Evaluation error:[/red] {exc}")
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from None
 
     # Print summary table
     table = Table(title="Results", show_header=True)
@@ -117,11 +117,11 @@ def run(
 @app.command()
 def validate(
     personas_dir: Annotated[
-        Optional[Path],
+        Path | None,
         typer.Option("--personas-dir", "-p", help="Directory of persona YAML files."),
     ] = None,
     plan: Annotated[
-        Optional[Path],
+        Path | None,
         typer.Option("--plan", help="Path to an evaluation plan YAML file."),
     ] = None,
 ) -> None:
@@ -134,12 +134,11 @@ def validate(
             console.print(f"[green]{len(personas)} persona(s) valid:[/green]")
             for p in personas.values():
                 console.print(
-                    f"  [cyan]{p.name}[/cyan] — {p.display_name} "
-                    f"({p.llm.provider}/{p.llm.model})"
+                    f"  [cyan]{p.name}[/cyan] — {p.display_name} ({p.llm.provider}/{p.llm.model})"
                 )
         except HafermilchError as exc:
             console.print(f"[red]{exc}[/red]")
-            raise typer.Exit(code=1)
+            raise typer.Exit(code=1) from None
 
     if plan:
         try:
@@ -150,11 +149,11 @@ def validate(
             console.print(f"  Tasks: {len(evaluation_plan.tasks)}")
         except HafermilchError as exc:
             console.print(f"[red]{exc}[/red]")
-            raise typer.Exit(code=1)
+            raise typer.Exit(code=1) from None
 
     if not personas_dir and not plan:
         console.print("Provide --personas-dir and/or --plan to validate.")
-        raise typer.Exit(code=1)
+        raise typer.Exit(code=1) from None
 
 
 @app.callback(invoke_without_command=True)

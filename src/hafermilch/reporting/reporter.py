@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path
 
 from hafermilch.core.models import EvaluationReport, PersonaReport
@@ -17,11 +16,11 @@ class Reporter:
 
     def _render_markdown(self, report: EvaluationReport) -> str:
         lines: list[str] = [
-            f"# Hafermilch Evaluation Report",
-            f"",
+            "# Hafermilch Evaluation Report",
+            "",
             f"**Target:** {report.target_url}  ",
             f"**Generated:** {report.generated_at.strftime('%Y-%m-%d %H:%M UTC')}",
-            f"",
+            "",
         ]
 
         # Summary table
@@ -32,9 +31,7 @@ class Reporter:
             "| ------- | :-----------: |",
         ]
         for pr in report.persona_reports:
-            lines.append(
-                f"| {pr.persona_display_name} | {pr.overall_score:.1f} / 10 |"
-            )
+            lines.append(f"| {pr.persona_display_name} | {pr.overall_score:.1f} / 10 |")
         lines.append("")
 
         for pr in report.persona_reports:
@@ -44,18 +41,18 @@ class Reporter:
 
     def _render_persona_section(self, pr: PersonaReport) -> list[str]:
         lines: list[str] = [
-            f"---",
-            f"",
+            "---",
+            "",
             f"## {pr.persona_display_name}",
-            f"",
+            "",
             f"**Overall score:** {pr.overall_score:.1f} / 10",
-            f"",
-            f"### Summary",
-            f"",
+            "",
+            "### Summary",
+            "",
             pr.summary,
-            f"",
-            f"### Dimension Scores",
-            f"",
+            "",
+            "### Dimension Scores",
+            "",
             "| Dimension | Score | Rationale |",
             "| --------- | :---: | --------- |",
         ]

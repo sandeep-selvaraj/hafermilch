@@ -5,7 +5,6 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
 
-
 # ---------------------------------------------------------------------------
 # Persona — who the agent is (reusable across any product)
 # ---------------------------------------------------------------------------
