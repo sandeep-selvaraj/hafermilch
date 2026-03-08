@@ -32,9 +32,7 @@ class PlaywrightBrowserAgent(BaseBrowserAgent):
     async def start(self) -> None:
         self._playwright = await async_playwright().start()
         self._browser = await self._playwright.chromium.launch(headless=self._headless)
-        self._context = await self._browser.new_context(
-            viewport={"width": 1280, "height": 800}
-        )
+        self._context = await self._browser.new_context(viewport={"width": 1280, "height": 800})
         self._page = await self._context.new_page()
 
     async def stop(self) -> None:
@@ -98,6 +96,4 @@ class PlaywrightBrowserAgent(BaseBrowserAgent):
         except BrowserError:
             raise
         except Exception as exc:
-            raise BrowserError(
-                f"Failed to execute action '{action.action_type}': {exc}"
-            ) from exc
+            raise BrowserError(f"Failed to execute action '{action.action_type}': {exc}") from exc

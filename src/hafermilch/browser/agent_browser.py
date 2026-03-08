@@ -104,9 +104,7 @@ class AgentBrowserAgent(BaseBrowserAgent):
         except BrowserError:
             raise
         except Exception as exc:
-            raise BrowserError(
-                f"Failed to execute action '{action.action_type}': {exc}"
-            ) from exc
+            raise BrowserError(f"Failed to execute action '{action.action_type}': {exc}") from exc
 
     async def _get_title(self) -> str:
         try:

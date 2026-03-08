@@ -75,9 +75,7 @@ class EvaluationRunner:
             persona_reports=persona_reports,
         )
 
-    async def _run_persona(
-        self, persona: Persona, plan: EvaluationPlan
-    ) -> PersonaReport:
+    async def _run_persona(self, persona: Persona, plan: EvaluationPlan) -> PersonaReport:
         provider = LLMProviderFactory.create(persona.llm)
         all_findings: list[Finding] = []
 
@@ -125,13 +123,9 @@ class EvaluationRunner:
                 include_screenshot=provider.supports_vision,
             )
 
-            logger.debug(
-                "    [%d/%d] %s", action_num + 1, step.max_actions, step.instruction
-            )
+            logger.debug("    [%d/%d] %s", action_num + 1, step.max_actions, step.instruction)
 
-            action: BrowserAction = await provider.complete_json(
-                messages, BrowserAction
-            )
+            action: BrowserAction = await provider.complete_json(messages, BrowserAction)
 
             findings.append(
                 Finding(

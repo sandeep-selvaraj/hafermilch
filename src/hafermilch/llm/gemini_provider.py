@@ -77,7 +77,5 @@ def _to_genai_parts(content: str | list) -> list[genai_types.Part]:
         if item["type"] == "text":
             parts.append(genai_types.Part.from_text(text=item["text"]))
         elif item["type"] == "image":
-            parts.append(
-                genai_types.Part.from_bytes(data=item["data"], mime_type="image/png")
-            )
+            parts.append(genai_types.Part.from_bytes(data=item["data"], mime_type="image/png"))
     return parts
