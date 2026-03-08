@@ -2,6 +2,7 @@
 
 site_name = "hafermilch"
 site_description = "Multi-persona LLM agents that evaluate your product's UI/UX"
+site_url = "https://sandeep-selvaraj.github.io/hafermilch/"
 site_author = "hafermilch contributors"
 copyright = "Copyright &copy; 2026 hafermilch contributors"
 
