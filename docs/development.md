@@ -9,7 +9,7 @@ icon: lucide/wrench
 ## Setup
 
 ```bash
-git clone https://github.com/your-org/hafermilch.git
+git clone https://github.com/sandeep-selvaraj/hafermilch.git
 cd hafermilch
 uv sync
 ```
