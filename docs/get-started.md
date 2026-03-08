@@ -94,11 +94,11 @@ Regardless of how you installed hafermilch, run this once to download the Chromi
 
 ## Get the example files
 
-The built-in example personas and plans are [available on GitHub](https://github.com/your-org/hafermilch/tree/main/examples). Download them to get started quickly:
+The built-in example personas and plans are [available on GitHub](https://github.com/sandeep-selvaraj/hafermilch/tree/main/examples). Download them to get started quickly:
 
 ```bash
 # Clone just the examples directory (sparse checkout)
-git clone --filter=blob:none --sparse https://github.com/your-org/hafermilch.git
+git clone --filter=blob:none --sparse https://github.com/sandeep-selvaraj/hafermilch.git
 cd hafermilch
 git sparse-checkout set examples
 ```
@@ -106,10 +106,10 @@ git sparse-checkout set examples
 Or grab a single plan file directly:
 
 ```bash
-curl -O https://raw.githubusercontent.com/your-org/hafermilch/main/examples/plans/saas_onboarding.yaml
+curl -O https://raw.githubusercontent.com/sandeep-selvaraj/hafermilch/main/examples/plans/saas_onboarding.yaml
 mkdir -p personas
 curl -o personas/tech_expert.yaml \
-  https://raw.githubusercontent.com/your-org/hafermilch/main/examples/personas/tech_expert.yaml
+  https://raw.githubusercontent.com/sandeep-selvaraj/hafermilch/main/examples/personas/tech_expert.yaml
 ```
 
 ---
@@ -200,7 +200,7 @@ See [Browser Backends](browser-backends.md) for a detailed comparison.
 To contribute or run from source:
 
 ```bash
-git clone https://github.com/your-org/hafermilch.git
+git clone https://github.com/sandeep-selvaraj/hafermilch.git
 cd hafermilch
 uv sync
 uv run playwright install chromium

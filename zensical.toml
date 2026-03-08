@@ -4,6 +4,8 @@ site_name = "hafermilch"
 site_description = "Multi-persona LLM agents that evaluate your product's UI/UX"
 site_url = "https://sandeep-selvaraj.github.io/hafermilch/"
 site_author = "hafermilch contributors"
+repo_url = "https://github.com/sandeep-selvaraj/hafermilch"
+repo_name = "sandeep-selvaraj/hafermilch"
 copyright = "Copyright &copy; 2026 hafermilch contributors"
 
 nav = [
@@ -65,10 +67,7 @@ accent = "custom"
 toggle.icon = "lucide/moon"
 toggle.name = "Switch to light mode"
 
-[project.repo]
-url = "https://github.com/your-org/hafermilch"
-name = "hafermilch"
 
 [[project.extra.social]]
 icon = "fontawesome/brands/github"
-link = "https://github.com/your-org/hafermilch"
+link = "https://github.com/sandeep-selvaraj/hafermilch"

@@ -7,7 +7,7 @@ icon: lucide/home
 <p>Multi-persona LLM agents that autonomously browse and critique your product's UI/UX — in their own voice.</p>
 
 [Get Started](get-started.md){ .md-button .md-button--primary }
-[View on GitHub](https://github.com/your-org/hafermilch){ .md-button }
+[View on GitHub](https://github.com/sandeep-selvaraj/hafermilch){ .md-button }
 </div>
 
 :material-language-python: **Python 3.11+** &nbsp;·&nbsp;
