@@ -21,11 +21,14 @@ class AgentBrowserAgent(BaseBrowserAgent):
     can run concurrently without sharing browser state.
 
     Requires agent-browser to be installed and available on PATH:
-        npm install -g @vercel-labs/agent-browser
+        npm install -g agent-browser
     """
 
     def __init__(self) -> None:
         self._session = f"hafermilch-{uuid.uuid4().hex[:8]}"
+        # Track the current URL ourselves — more reliable than calling `get url`
+        # because agent-browser may return it in an unpredictable JSON shape.
+        self._current_url: str = ""
 
     @property
     def selector_hint(self) -> str:
@@ -46,23 +49,19 @@ class AgentBrowserAgent(BaseBrowserAgent):
 
     async def navigate(self, url: str) -> None:
         await self._run("open", url)
+        self._current_url = url
 
     async def capture(self) -> PageContext:
         try:
             snapshot_raw = await self._run("snapshot", "--compact")
             snapshot_data = json.loads(snapshot_raw)
-            tree_text = snapshot_data.get("data", {}).get("snapshot", "")
+            tree_text = snapshot_data.get("data", {}).get("snapshot") or ""
 
-            url_raw = await self._run("get", "url")
-            url = json.loads(url_raw).get("data", "")
-
-            title_raw = await self._run("get", "title")
-            title = json.loads(title_raw).get("data", "")
-
+            title = await self._get_title()
             screenshot = await self._capture_screenshot()
 
             return PageContext(
-                url=url,
+                url=self._current_url,
                 title=title,
                 screenshot=screenshot,
                 accessibility_tree=tree_text,
@@ -89,6 +88,7 @@ class AgentBrowserAgent(BaseBrowserAgent):
                     if not action.url:
                         raise BrowserError("'navigate' action requires a url.")
                     await self._run("open", action.url)
+                    self._current_url = action.url
 
                 case "scroll":
                     direction = action.direction or "down"
@@ -109,12 +109,19 @@ class AgentBrowserAgent(BaseBrowserAgent):
                 f"Failed to execute action '{action.action_type}': {exc}"
             ) from exc
 
+    async def _get_title(self) -> str:
+        try:
+            raw = await self._run("get", "title")
+            data = json.loads(raw).get("data")
+            return data if isinstance(data, str) else ""
+        except Exception:
+            return ""
+
     async def _capture_screenshot(self) -> bytes | None:
         """Save a screenshot to a temp file and return its bytes."""
         with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as f:
             tmp_path = Path(f.name)
         try:
-            # Screenshot doesn't use --json; output goes directly to the file
             await self._run_raw("screenshot", str(tmp_path))
             return tmp_path.read_bytes()
         except Exception:
@@ -129,11 +136,18 @@ class AgentBrowserAgent(BaseBrowserAgent):
     async def _run_raw(self, *args: str) -> str:
         """Run an agent-browser command and return raw stdout."""
         cmd = ["agent-browser", "--session", self._session, *args]
-        proc = await asyncio.create_subprocess_exec(
-            *cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+        except FileNotFoundError as exc:
+            raise BrowserError(
+                "agent-browser CLI not found on PATH. "
+                "Install it with: npm install -g agent-browser"
+            ) from exc
+
         stdout, stderr = await proc.communicate()
         if proc.returncode != 0:
             raise BrowserError(
