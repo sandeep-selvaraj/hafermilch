@@ -14,9 +14,7 @@ _VISION_MODELS = {"llava", "llava:13b", "llava:34b", "llava-phi3", "moondream"}
 
 
 class OllamaProvider(LLMProvider):
-    def __init__(
-        self, model: str, temperature: float, base_url: str | None = None
-    ) -> None:
+    def __init__(self, model: str, temperature: float, base_url: str | None = None) -> None:
         self._model = model
         self._temperature = temperature
         # Priority: base_url from persona YAML → OLLAMA_HOST env var → default

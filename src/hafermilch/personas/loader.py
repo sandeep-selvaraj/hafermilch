@@ -47,9 +47,7 @@ def load_plan(path: Path) -> EvaluationPlan:
         raise PersonaLoadError(f"Invalid plan in {path}:\n{exc}") from exc
 
 
-def resolve_plan_personas(
-    plan: EvaluationPlan, personas: dict[str, Persona]
-) -> list[Persona]:
+def resolve_plan_personas(plan: EvaluationPlan, personas: dict[str, Persona]) -> list[Persona]:
     """Resolve the persona names in a plan to loaded Persona objects."""
     resolved: list[Persona] = []
     for name in plan.personas:

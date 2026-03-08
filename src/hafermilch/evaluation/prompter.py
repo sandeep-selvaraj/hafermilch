@@ -86,9 +86,7 @@ class Prompter:
         """Return the message list that asks the persona to produce a final report."""
         system = self.build_system_prompt(persona)
 
-        dimensions = "\n".join(
-            f"  - {d.name}: {d.description}" for d in persona.scoring_dimensions
-        )
+        dimensions = "\n".join(f"  - {d.name}: {d.description}" for d in persona.scoring_dimensions)
 
         user_text = (
             f"You have finished evaluating the product. "
