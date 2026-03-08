@@ -15,6 +15,12 @@ icon: lucide/home
 :material-web: **Playwright · agent-browser** &nbsp;·&nbsp;
 :material-package-variant: **uv · hatchling**
 
+```bash
+uv tool install hafermilch
+playwright install chromium
+hafermilch run myplan.yaml
+```
+
 ---
 
 ## What is hafermilch?

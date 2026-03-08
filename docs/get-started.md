@@ -7,38 +7,116 @@ icon: lucide/rocket
 ## Prerequisites
 
 - Python **3.11+**
-- [uv](https://docs.astral.sh/uv/) — the package manager used by hafermilch
+- [uv](https://docs.astral.sh/uv/) — recommended package manager
 - Node.js (only if using the `agent-browser` backend)
 
 ---
 
 ## Installation
 
-Clone the repository and sync dependencies:
+=== "From PyPI (recommended)"
+
+    Install hafermilch as a **global tool** with uv — no virtualenv management needed:
+
+    ```bash
+    uv tool install hafermilch
+    ```
+
+    Then run it directly from anywhere:
+
+    ```bash
+    hafermilch run myplan.yaml
+    ```
+
+    To install with Playwright support:
+
+    ```bash
+    uv tool install hafermilch
+    hafermilch run myplan.yaml  # playwright is a declared dependency, installed automatically
+    playwright install chromium
+    ```
+
+    To upgrade to the latest release:
+
+    ```bash
+    uv tool upgrade hafermilch
+    ```
+
+=== "Try without installing (uvx)"
+
+    Run hafermilch once without permanently installing it:
+
+    ```bash
+    uvx hafermilch --version
+    uvx hafermilch run myplan.yaml
+    ```
+
+    !!! tip
+        `uvx` is ideal for CI pipelines or one-off evaluations.
+
+=== "Add to a project (uv add)"
+
+    Add hafermilch as a dependency in an existing uv project:
+
+    ```bash
+    uv add hafermilch
+    uv run hafermilch run myplan.yaml
+    ```
+
+=== "pip"
+
+    ```bash
+    pip install hafermilch
+    hafermilch run myplan.yaml
+    ```
+
+---
+
+## Install the Playwright browser
+
+Regardless of how you installed hafermilch, run this once to download the Chromium binary:
+
+=== "uv tool install"
+
+    ```bash
+    playwright install chromium
+    ```
+
+=== "uvx / uv add / pip"
+
+    ```bash
+    uv run playwright install chromium
+    # or
+    python -m playwright install chromium
+    ```
+
+---
+
+## Get the example files
+
+The built-in example personas and plans are [available on GitHub](https://github.com/your-org/hafermilch/tree/main/examples). Download them to get started quickly:
 
 ```bash
-git clone https://github.com/your-org/hafermilch.git
+# Clone just the examples directory (sparse checkout)
+git clone --filter=blob:none --sparse https://github.com/your-org/hafermilch.git
 cd hafermilch
-uv sync
+git sparse-checkout set examples
 ```
 
-Install the Playwright browser (required for the default backend):
+Or grab a single plan file directly:
 
 ```bash
-uv run playwright install chromium
+curl -O https://raw.githubusercontent.com/your-org/hafermilch/main/examples/plans/saas_onboarding.yaml
+mkdir -p personas
+curl -o personas/tech_expert.yaml \
+  https://raw.githubusercontent.com/your-org/hafermilch/main/examples/personas/tech_expert.yaml
 ```
 
 ---
 
 ## Configure API keys
 
-Copy the example environment file and add your keys:
-
-```bash
-cp .env.example .env
-```
-
-Then edit `.env`:
+Set your LLM API keys as environment variables, or create a `.env` file in your working directory:
 
 ```bash title=".env"
 # OpenAI
@@ -52,21 +130,21 @@ GOOGLE_API_KEY=AIza...
 ```
 
 !!! tip "Only add what you need"
-    hafermilch only requires the key(s) for providers you actually use in your persona files. If all your personas use Ollama, you don't need any cloud API keys.
+    hafermilch only requires keys for providers used in your persona files. If all your personas use Ollama, no cloud API keys are needed.
 
 ---
 
 ## Validate your setup
 
-Before running a full evaluation, validate that your personas and plan files parse correctly:
+Before running a full evaluation, confirm your personas and plan files parse correctly:
 
 ```bash
-uv run hafermilch validate \
+hafermilch validate \
   --personas-dir examples/personas \
   --plan examples/plans/saas_onboarding.yaml
 ```
 
-You should see something like:
+You should see:
 
 ```
 3 persona(s) valid:
@@ -84,7 +162,7 @@ Plan valid: saas_onboarding
 ## Run your first evaluation
 
 ```bash
-uv run hafermilch run examples/plans/saas_onboarding.yaml
+hafermilch run examples/plans/saas_onboarding.yaml
 ```
 
 hafermilch will:
@@ -107,10 +185,26 @@ If you want to use the [agent-browser](https://github.com/vercel-labs/agent-brow
 npm install -g agent-browser
 ```
 
-Then pass `--browser agent-browser` to the `run` command:
+Then pass `--browser agent-browser`:
 
 ```bash
-uv run hafermilch run examples/plans/saas_onboarding.yaml --browser agent-browser
+hafermilch run examples/plans/saas_onboarding.yaml --browser agent-browser
 ```
 
 See [Browser Backends](browser-backends.md) for a detailed comparison.
+
+---
+
+## Development install
+
+To contribute or run from source:
+
+```bash
+git clone https://github.com/your-org/hafermilch.git
+cd hafermilch
+uv sync
+uv run playwright install chromium
+uv run hafermilch run examples/plans/saas_onboarding.yaml
+```
+
+See [Development](development.md) for the full contributor guide.
