@@ -55,7 +55,7 @@ class LLMProvider(ABC):
         ]
 
         last_error: Exception | None = None
-        for attempt in range(max_retries + 1):
+        for _attempt in range(max_retries + 1):
             raw = await self.complete(augmented)
             try:
                 data = _extract_json(raw)

@@ -8,8 +8,8 @@ from hafermilch.core.settings import settings
 from hafermilch.llm.base import LLMProvider, Message
 
 try:
-    from openai import AsyncAzureOpenAI, AsyncOpenAI
     from openai import APIError as OpenAIAPIError
+    from openai import AsyncAzureOpenAI, AsyncOpenAI
 except ImportError as exc:  # pragma: no cover
     raise ImportError("Install 'openai' to use the OpenAI provider.") from exc
 
