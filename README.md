@@ -24,7 +24,7 @@ cp .env.example .env
 For the agent-browser backend (optional), also install the CLI:
 
 ```bash
-npm install -g @vercel-labs/agent-browser
+npm install -g agent-browser
 ```
 
 ---
