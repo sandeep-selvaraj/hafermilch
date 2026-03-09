@@ -10,6 +10,7 @@ from hafermilch.browser.factory import BrowserBackend, create_browser_agent
 from hafermilch.core.exceptions import EvaluationError
 from hafermilch.core.models import (
     BrowserAction,
+    Credentials,
     DimensionScore,
     EvaluationPlan,
     EvaluationReport,
@@ -93,6 +94,7 @@ class EvaluationRunner:
                         provider=provider,
                         task=task,
                         step=step,
+                        credentials=plan.credentials,
                     )
                     all_findings.extend(findings)
 
@@ -110,6 +112,7 @@ class EvaluationRunner:
         provider: LLMProvider,
         task: Task,
         step: TaskStep,
+        credentials: Credentials | None = None,
     ) -> list[Finding]:
         findings: list[Finding] = []
 
@@ -120,10 +123,17 @@ class EvaluationRunner:
                 context=page_ctx,
                 step=step,
                 selector_hint=agent.selector_hint,
+                credentials=credentials,
                 include_screenshot=provider.supports_vision,
             )
 
-            logger.debug("    [%d/%d] %s", action_num + 1, step.max_actions, step.instruction)
+            logger.debug(
+                "    [%d/%d] %s | tree_len=%d",
+                action_num + 1,
+                step.max_actions,
+                step.instruction,
+                len(page_ctx.accessibility_tree or ""),
+            )
 
             action: BrowserAction = await provider.complete_json(messages, BrowserAction)
 
