@@ -5,6 +5,32 @@ All notable changes to hafermilch are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Commits follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) spec.
 
+## [0.1.1] — 2026-03-09
+
+### Documentation
+
+- Show github stats ([`c28101b`](c28101b07995b0398e235e0691ba821db72df555))
+
+### Features
+
+- Set credentials as env variables for task that involves logging in ([`ba4199e`](ba4199ec55869ca80428492f4d177e19a9ca54fa))
+- Provide some reasonable outputs during headless mode ([`d8a7fac`](d8a7fac99bbb8b37aa1e9a314d000d1a022d16db))
+- Use litellm for centralized model gateway ([`e842163`](e842163f558646e70763edd039ebe891f94ad515))
+
+### Miscellaneous
+
+- Update examples on how to use login ([`c3ffe49`](c3ffe4904fd9c691885703365763ae544fb94415))
+- Ignore some local files ([`7e29a91`](7e29a914a80961de450de7aaa76350f6d31f2ccc))
+- Update CHANGELOG for v0.1.0 ([`e1580b0`](e1580b0d49d3977656bfb1830ea900d08d48895a))
+
+### Refactoring
+
+- Fix some trivial issues ([`59b4517`](59b4517967bba9b7aa0018bb8ee5514e266a6b2e))
+
+### Build
+
+- Migrate to litellm ([`f4c5e52`](f4c5e5231920b8e2a104f7bf2a882245d000480d))
+
 ## [0.1.0] — 2026-03-08
 
 ### CI
