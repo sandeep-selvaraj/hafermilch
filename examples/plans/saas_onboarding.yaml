@@ -6,6 +6,15 @@ description: >
 # The product URL to evaluate. Override this with your own product's URL.
 target_url: "https://automationexercise.com/"
 
+# Optional: provide login credentials so the LLM can authenticate.
+# Values support ${ENV_VAR} substitution — never hard-code real passwords here.
+#
+# credentials:
+#   username: ${APP_USERNAME}
+#   password: ${APP_PASSWORD}
+#   extra:
+#     account_id: "12345"      # any extra fields the site may need
+
 # Reference personas by their `name` field (must exist in --personas-dir)
 personas:
   - tech_expert
