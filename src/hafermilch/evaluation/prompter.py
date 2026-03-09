@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from hafermilch.browser.context import PageContext
-from hafermilch.core.models import Persona, TaskStep
+from hafermilch.core.models import Credentials, Persona, TaskStep
 from hafermilch.llm.base import Message
 
 _REPORT_SCHEMA_HINT = """
@@ -35,8 +35,28 @@ Use action_type 'done' when you have completed the instruction or cannot proceed
 class Prompter:
     """Builds prompts that frame the LLM as a specific persona."""
 
-    def build_system_prompt(self, persona: Persona) -> Message:
+    def build_system_prompt(
+        self,
+        persona: Persona,
+        credentials: Credentials | None = None,
+    ) -> Message:
         goals = "\n".join(f"  - {g}" for g in persona.goals)
+
+        creds_section = ""
+        if credentials:
+            lines = []
+            if credentials.username:
+                lines.append(f"  Username / email: {credentials.username}")
+            if credentials.password:
+                lines.append(f"  Password: {credentials.password}")
+            for key, value in credentials.extra.items():
+                lines.append(f"  {key}: {value}")
+            if lines:
+                creds_section = (
+                    "\n\nCredentials for this session — use them whenever "
+                    "the site asks you to log in:\n" + "\n".join(lines)
+                )
+
         return Message(
             role="system",
             content=(
@@ -47,7 +67,7 @@ class Prompter:
                 f"Technical mindset: {'yes' if persona.technical else 'no'}.\n\n"
                 "Stay completely in character throughout the session. "
                 "Your observations, frustrations, and praise should reflect "
-                "your background and level of technical knowledge."
+                f"your background and level of technical knowledge.{creds_section}"
             ),
         )
 
@@ -57,10 +77,11 @@ class Prompter:
         context: PageContext,
         step: TaskStep,
         selector_hint: str,
+        credentials: Credentials | None = None,
         include_screenshot: bool = True,
     ) -> list[Message]:
         """Return the full message list for a single action decision."""
-        system = self.build_system_prompt(persona)
+        system = self.build_system_prompt(persona, credentials)
 
         schema_hint = _ACTION_SCHEMA_TEMPLATE.format(selector_hint=selector_hint)
 

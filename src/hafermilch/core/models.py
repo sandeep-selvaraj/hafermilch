@@ -11,14 +11,16 @@ from pydantic import BaseModel, Field, model_validator
 
 
 class LLMConfig(BaseModel):
-    provider: Literal["openai", "gemini", "ollama"]
+    # Any LiteLLM provider prefix: openai, azure, gemini, ollama, anthropic, etc.
+    # Use "azure" (not "openai") for Azure OpenAI deployments.
+    provider: str
     model: str
     temperature: float = 0.7
     # Optionally override the env-var API key (useful for multi-key setups)
     api_key: str | None = None
-    # Azure OpenAI / Ollama endpoint override
+    # Azure / Ollama / custom endpoint override
     base_url: str | None = None
-    # Azure OpenAI API version (e.g. "2024-02-01"); ignored for other providers
+    # Azure OpenAI API version (e.g. "2024-02-01")
     api_version: str | None = None
 
 
@@ -66,6 +68,19 @@ class Task(BaseModel):
         return self
 
 
+class Credentials(BaseModel):
+    """Login credentials injected into the LLM system prompt.
+
+    Values support ``${ENV_VAR}`` interpolation — the loader substitutes them
+    at load time so passwords never need to be hard-coded in YAML files.
+    """
+
+    username: str | None = None
+    password: str | None = None
+    # Arbitrary extra fields (e.g. account_id, otp_secret, tenant)
+    extra: dict[str, str] = Field(default_factory=dict)
+
+
 class EvaluationPlan(BaseModel):
     """A plan describes what to test on a specific product/URL.
 
@@ -79,6 +94,8 @@ class EvaluationPlan(BaseModel):
     # Names that must match the `name` field of loaded Persona files
     personas: list[str]
     tasks: list[Task]
+    # Optional credentials made available to the LLM during the session
+    credentials: Credentials | None = None
 
     @model_validator(mode="after")
     def _non_empty(self) -> EvaluationPlan:
