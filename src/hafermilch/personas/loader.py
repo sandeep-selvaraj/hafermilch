@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+import re
 from pathlib import Path
 
 import yaml
@@ -9,10 +11,22 @@ from hafermilch.core.exceptions import PersonaLoadError
 from hafermilch.core.models import EvaluationPlan, Persona
 
 
+def _interpolate_env_vars(text: str) -> str:
+    """Replace ``${VAR}`` placeholders with their environment variable values.
+
+    Unknown variables are left as-is so the validator can surface a clear error.
+    """
+    return re.sub(r"\$\{(\w+)\}", lambda m: os.environ.get(m.group(1), m.group(0)), text)
+
+
 def load_persona(path: Path) -> Persona:
-    """Load and validate a single persona YAML file."""
+    """Load and validate a single persona YAML file.
+
+    ``${ENV_VAR}`` placeholders anywhere in the file are substituted with the
+    corresponding environment variable before parsing.
+    """
     try:
-        raw = yaml.safe_load(path.read_text())
+        raw = yaml.safe_load(_interpolate_env_vars(path.read_text()))
         return Persona.model_validate(raw)
     except FileNotFoundError as exc:
         raise PersonaLoadError(f"Persona file not found: {path}") from exc
@@ -35,9 +49,13 @@ def load_personas_from_dir(directory: Path) -> dict[str, Persona]:
 
 
 def load_plan(path: Path) -> EvaluationPlan:
-    """Load and validate an evaluation plan YAML file."""
+    """Load and validate an evaluation plan YAML file.
+
+    ``${ENV_VAR}`` placeholders anywhere in the file are substituted with the
+    corresponding environment variable before parsing.
+    """
     try:
-        raw = yaml.safe_load(path.read_text())
+        raw = yaml.safe_load(_interpolate_env_vars(path.read_text()))
         return EvaluationPlan.model_validate(raw)
     except FileNotFoundError as exc:
         raise PersonaLoadError(f"Plan file not found: {path}") from exc
