@@ -50,17 +50,19 @@ jobs:
       - name: Generate changelog for this release (release body)
         run: git cliff --config cliff.toml --current --strip all > body.md
 
-      - name: Regenerate full CHANGELOG.md
-        run: git cliff --config cliff.toml --output CHANGELOG.md
-
-      - name: Commit updated CHANGELOG.md
+      - name: Commit updated CHANGELOG.md to master
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          # Always work on top of the current master HEAD so re-runs don't
+          # produce a non-fast-forward push (body.md is untracked and persists).
+          git fetch origin master
+          git checkout -B master origin/master
+          git cliff --config cliff.toml --output CHANGELOG.md
           git add CHANGELOG.md
           git diff --staged --quiet \
             || git commit -m "chore: update CHANGELOG for ${{ github.ref_name }}"
-          git push origin HEAD:master
+          git push origin master
 
       - uses: actions/download-artifact@v4
         with:
@@ -77,3 +79,4 @@ jobs:
         with:
           files: dist/*
           body_path: body.md
+          make_latest: true
