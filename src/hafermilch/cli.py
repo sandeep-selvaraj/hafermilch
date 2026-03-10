@@ -31,11 +31,10 @@ console = Console()
 
 def _setup_logging(verbose: bool) -> None:
     level = logging.DEBUG if verbose else logging.INFO
-    logging.basicConfig(
-        level=level,
-        format="%(message)s",
-        handlers=[RichHandler(console=console, show_path=False)],
-    )
+    root = logging.getLogger()
+    root.setLevel(level)
+    root.handlers.clear()
+    root.addHandler(RichHandler(console=console, show_path=False))
 
 
 @app.command()
@@ -111,6 +110,7 @@ def run(
     reporter = Reporter()
     reporter.to_json(report, output_dir / "report.json")
     reporter.to_markdown(report, output_dir / "report.md")
+    reporter.to_html(report, output_dir / "report.html")
     console.print(f"\nReports written to [green]{output_dir}/[/green]")
 
 

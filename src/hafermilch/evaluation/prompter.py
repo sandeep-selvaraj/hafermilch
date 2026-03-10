@@ -20,15 +20,19 @@ _ACTION_SCHEMA_TEMPLATE = """\
 {{
   "observation": "What you notice about this page, in your own voice",
   "reasoning": "Why you are taking the next action",
-  "action_type": "click | type | scroll | navigate | wait | done",
+  "action_type": "click | type | scroll | navigate | wait | login | done",
   "selector": "{selector_hint}",
   "text": "Text to enter (required for type)",
   "url": "Destination URL (required for navigate)",
   "direction": "up | down (required for scroll)",
   "amount": 300,
-  "wait_ms": 1000
+  "wait_ms": 1000,
+  "username": "Username or email (required for login)",
+  "password": "Password (required for login)"
 }}
-Use action_type 'done' when you have completed the instruction or cannot proceed.
+Use action_type 'login' when you see a login form — provide username and password and the browser
+will fill and submit the form automatically in one step. Do NOT use 'type' for login forms.
+Use action_type 'done' ONLY when the goal is fully achieved and confirmed in the UI.
 """
 
 
