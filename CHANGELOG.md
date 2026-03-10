@@ -5,6 +5,16 @@ All notable changes to hafermilch are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Commits follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) spec.
 
+## [0.1.3] — 2026-03-10
+
+### CI
+
+- Make release step idempotent on re-run ([`0a3c68d`](0a3c68d8ea268b0ad5b6391a8b5f04b76ec195f9))
+
+### Miscellaneous
+
+- Update CHANGELOG for v0.1.2 ([`2c79c7f`](2c79c7f788b32430bd7dbd71f7195634c40c59a1))
+
 ## [0.1.2] — 2026-03-10
 
 ### CI
