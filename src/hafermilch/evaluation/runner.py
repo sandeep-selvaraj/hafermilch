@@ -19,6 +19,7 @@ from hafermilch.core.models import (
     PersonaReport,
     Task,
     TaskStep,
+    TokenUsage,
 )
 from hafermilch.evaluation.prompter import Prompter
 from hafermilch.llm.base import LLMProvider
@@ -70,10 +71,16 @@ class EvaluationRunner:
                     f"Evaluation failed for persona '{persona.name}': {exc}"
                 ) from exc
 
+        total_usage: TokenUsage | None = None
+        for pr in persona_reports:
+            if pr.total_usage is not None:
+                total_usage = (total_usage + pr.total_usage) if total_usage else pr.total_usage
+
         return EvaluationReport(
             plan_name=plan.name,
             target_url=plan.target_url,
             persona_reports=persona_reports,
+            total_usage=total_usage,
         )
 
     async def _run_persona(self, persona: Persona, plan: EvaluationPlan) -> PersonaReport:
@@ -135,7 +142,13 @@ class EvaluationRunner:
                 len(page_ctx.accessibility_tree or ""),
             )
 
-            action: BrowserAction = await provider.complete_json(messages, BrowserAction)
+            action, usage = await provider.complete_json(messages, BrowserAction)
+            logger.info(
+                "    Action: %s | selector=%s | text=%s",
+                action.action_type,
+                action.selector,
+                action.text,
+            )
 
             findings.append(
                 Finding(
@@ -145,6 +158,8 @@ class EvaluationRunner:
                     observation=action.observation,
                     reasoning=action.reasoning,
                     action_taken=action.action_type,
+                    screenshot=page_ctx.screenshot,
+                    usage=usage,
                 )
             )
 
@@ -176,7 +191,7 @@ class EvaluationRunner:
         )
 
         messages = self._prompter.build_report_prompt(persona, findings_summary)
-        llm_report: _LLMReport = await provider.complete_json(messages, _LLMReport)
+        llm_report, report_usage = await provider.complete_json(messages, _LLMReport)
 
         dimension_scores = [
             DimensionScore(
@@ -187,6 +202,14 @@ class EvaluationRunner:
             for d in llm_report.dimension_scores
         ]
 
+        # Accumulate usage: all step findings + final report call
+        total_usage: TokenUsage | None = None
+        for f in findings:
+            if f.usage is not None:
+                total_usage = (total_usage + f.usage) if total_usage else f.usage
+        if report_usage is not None:
+            total_usage = (total_usage + report_usage) if total_usage else report_usage
+
         return PersonaReport(
             persona_name=persona.name,
             persona_display_name=persona.display_name,
@@ -196,4 +219,5 @@ class EvaluationRunner:
             overall_score=llm_report.overall_score,
             summary=llm_report.summary,
             recommendations=llm_report.recommendations,
+            total_usage=total_usage,
         )

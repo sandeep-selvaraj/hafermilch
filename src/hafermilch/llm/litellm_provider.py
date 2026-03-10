@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import base64
+import contextlib
 import logging
 from typing import Any
 from urllib.parse import urlparse
 
 from hafermilch.core.exceptions import LLMProviderError
+from hafermilch.core.models import TokenUsage
 from hafermilch.llm.base import LLMProvider, Message
 
 try:
@@ -91,7 +93,7 @@ class LiteLLMProvider(LLMProvider):
         except Exception:
             return False
 
-    async def complete(self, messages: list[Message]) -> str:
+    async def complete(self, messages: list[Message]) -> tuple[str, TokenUsage | None]:
         litellm_messages = [_to_litellm_message(m) for m in messages]
         kwargs = {**self._kwargs, "temperature": self._temperature}
 
@@ -101,7 +103,7 @@ class LiteLLMProvider(LLMProvider):
                 messages=litellm_messages,
                 **kwargs,
             )
-            return response.choices[0].message.content or ""
+            return response.choices[0].message.content or "", _extract_usage(response)
 
         except BadRequestError as exc:
             error_body = str(exc).lower()
@@ -117,7 +119,7 @@ class LiteLLMProvider(LLMProvider):
                         messages=litellm_messages,
                         **kwargs,
                     )
-                    return response.choices[0].message.content or ""
+                    return response.choices[0].message.content or "", _extract_usage(response)
                 except Exception as retry_exc:
                     raise LLMProviderError(f"LLM error: {retry_exc}") from retry_exc
 
@@ -128,6 +130,23 @@ class LiteLLMProvider(LLMProvider):
 
         except Exception as exc:
             raise LLMProviderError(f"LLM error: {exc}") from exc
+
+
+def _extract_usage(response: Any) -> TokenUsage | None:
+    """Pull token counts and cost from a LiteLLM response object."""
+    try:
+        u = response.usage
+        cost: float | None = None
+        with contextlib.suppress(Exception):
+            cost = litellm.completion_cost(completion_response=response)
+        return TokenUsage(
+            prompt_tokens=u.prompt_tokens or 0,
+            completion_tokens=u.completion_tokens or 0,
+            total_tokens=u.total_tokens or 0,
+            cost_usd=cost,
+        )
+    except Exception:
+        return None
 
 
 def _to_litellm_message(msg: Message) -> dict[str, Any]:

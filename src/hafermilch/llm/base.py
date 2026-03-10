@@ -8,6 +8,7 @@ from typing import Any
 from pydantic import BaseModel
 
 from hafermilch.core.exceptions import LLMProviderError
+from hafermilch.core.models import TokenUsage
 
 
 class Message(BaseModel):
@@ -28,20 +29,18 @@ class LLMProvider(ABC):
         """True when the provider/model can accept image inputs."""
 
     @abstractmethod
-    async def complete(self, messages: list[Message]) -> str:
-        """Send messages and return the raw text response."""
+    async def complete(self, messages: list[Message]) -> tuple[str, TokenUsage | None]:
+        """Send messages and return the raw text response plus token usage."""
 
     async def complete_json(
         self,
         messages: list[Message],
         schema: type[BaseModel],
         max_retries: int = 2,
-    ) -> BaseModel:
+    ) -> tuple[BaseModel, TokenUsage | None]:
         """Send messages and parse the response as a Pydantic model.
 
-        The last user message should instruct the model to reply with JSON
-        conforming to the schema. We attempt to extract a JSON block even
-        when the model wraps it in markdown fences.
+        Returns the parsed model and accumulated token usage across all attempts.
         """
         schema_hint = _schema_hint(schema)
         augmented = messages + [
@@ -54,15 +53,18 @@ class LLMProvider(ABC):
             )
         ]
 
+        accumulated_usage: TokenUsage | None = None
         last_error: Exception | None = None
+
         for _attempt in range(max_retries + 1):
-            raw = await self.complete(augmented)
+            raw, usage = await self.complete(augmented)
+            if usage is not None:
+                accumulated_usage = (accumulated_usage + usage) if accumulated_usage else usage
             try:
                 data = _extract_json(raw)
-                return schema.model_validate(data)
+                return schema.model_validate(data), accumulated_usage
             except Exception as exc:
                 last_error = exc
-                # Feed the error back so the model can self-correct
                 augmented = augmented + [
                     Message(role="assistant", content=raw),
                     Message(
@@ -91,12 +93,10 @@ def _schema_hint(schema: type[BaseModel]) -> str:
 
 def _extract_json(text: str) -> dict[str, Any]:
     """Extract the first JSON object from a string, stripping markdown fences."""
-    # Strip ```json ... ``` or ``` ... ``` fences
     fenced = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
     if fenced:
         return json.loads(fenced.group(1))
 
-    # Fall back to finding the first { ... } block
     start = text.find("{")
     end = text.rfind("}")
     if start != -1 and end != -1:

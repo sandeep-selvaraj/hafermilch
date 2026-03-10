@@ -6,6 +6,27 @@ from typing import Literal
 from pydantic import BaseModel, Field, model_validator
 
 # ---------------------------------------------------------------------------
+# Token usage / cost tracking
+# ---------------------------------------------------------------------------
+
+
+class TokenUsage(BaseModel):
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    total_tokens: int = 0
+    cost_usd: float | None = None
+
+    def __add__(self, other: TokenUsage) -> TokenUsage:
+        both_have_cost = self.cost_usd is not None or other.cost_usd is not None
+        return TokenUsage(
+            prompt_tokens=self.prompt_tokens + other.prompt_tokens,
+            completion_tokens=self.completion_tokens + other.completion_tokens,
+            total_tokens=self.total_tokens + other.total_tokens,
+            cost_usd=(self.cost_usd or 0.0) + (other.cost_usd or 0.0) if both_have_cost else None,
+        )
+
+
+# ---------------------------------------------------------------------------
 # Persona — who the agent is (reusable across any product)
 # ---------------------------------------------------------------------------
 
@@ -114,7 +135,7 @@ class EvaluationPlan(BaseModel):
 class BrowserAction(BaseModel):
     """Structured response returned by the LLM at each evaluation step."""
 
-    action_type: Literal["click", "type", "scroll", "navigate", "wait", "done"]
+    action_type: Literal["click", "type", "scroll", "navigate", "wait", "login", "done"]
     # CSS selector or ARIA role/label used for click / type actions
     selector: str | None = None
     # Text to fill into an input (for "type" actions)
@@ -126,6 +147,9 @@ class BrowserAction(BaseModel):
     amount: int | None = None
     # Milliseconds to pause (for "wait" actions)
     wait_ms: int | None = None
+    # Credentials for the "login" action — fills the whole form and submits in one step
+    username: str | None = None
+    password: str | None = None
     # The persona's in-character observation of the current page
     observation: str
     # Why the persona is taking this particular action
@@ -142,6 +166,10 @@ class Finding(BaseModel):
     reasoning: str
     action_taken: str
     timestamp: datetime = Field(default_factory=datetime.now)
+    usage: TokenUsage | None = None
+    # Screenshot captured at the moment the LLM made its decision.
+    # Excluded from JSON output to keep reports lean.
+    screenshot: bytes | None = Field(default=None, exclude=True)
 
 
 class DimensionScore(BaseModel):
@@ -159,6 +187,7 @@ class PersonaReport(BaseModel):
     overall_score: float = Field(ge=0, le=10)
     summary: str
     recommendations: list[str]
+    total_usage: TokenUsage | None = None
     generated_at: datetime = Field(default_factory=datetime.now)
 
 
@@ -166,4 +195,5 @@ class EvaluationReport(BaseModel):
     plan_name: str
     target_url: str
     persona_reports: list[PersonaReport]
+    total_usage: TokenUsage | None = None
     generated_at: datetime = Field(default_factory=datetime.now)
