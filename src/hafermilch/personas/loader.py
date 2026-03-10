@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 import re
 from pathlib import Path
@@ -10,13 +11,25 @@ from pydantic import ValidationError
 from hafermilch.core.exceptions import PersonaLoadError
 from hafermilch.core.models import EvaluationPlan, Persona
 
+logger = logging.getLogger(__name__)
+
 
 def _interpolate_env_vars(text: str) -> str:
     """Replace ``${VAR}`` placeholders with their environment variable values.
 
-    Unknown variables are left as-is so the validator can surface a clear error.
+    Unresolved variables are left as-is and a warning is logged.
     """
-    return re.sub(r"\$\{(\w+)\}", lambda m: os.environ.get(m.group(1), m.group(0)), text)
+
+    def _replace(m: re.Match) -> str:
+        name = m.group(1)
+        value = os.environ.get(name)
+        if value is None:
+            logger.warning("Environment variable '%s' is not set — placeholder left as-is", name)
+            return m.group(0)
+        logger.debug("Resolved ${%s} → %s", name, value[:3] + "***" if len(value) > 3 else "***")
+        return value
+
+    return re.sub(r"\$\{(\w+)\}", _replace, text)
 
 
 def load_persona(path: Path) -> Persona:
