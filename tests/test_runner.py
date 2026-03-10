@@ -90,7 +90,7 @@ async def test_run_step_stops_on_done_action():
 
     mock_provider = MagicMock()
     mock_provider.supports_vision = False
-    mock_provider.complete_json = AsyncMock(return_value=done_action)
+    mock_provider.complete_json = AsyncMock(return_value=(done_action, None))
 
     mock_agent = MagicMock()
     mock_agent.selector_hint = "Use CSS"
@@ -134,7 +134,7 @@ async def test_run_step_continues_after_browser_action_failure():
 
     mock_provider = MagicMock()
     mock_provider.supports_vision = False
-    mock_provider.complete_json = AsyncMock(return_value=click_action)
+    mock_provider.complete_json = AsyncMock(return_value=(click_action, None))
 
     mock_agent = MagicMock()
     mock_agent.selector_hint = "Use CSS"

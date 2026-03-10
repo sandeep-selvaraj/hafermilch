@@ -6,6 +6,7 @@ import pytest
 from pydantic import BaseModel
 
 from hafermilch.core.exceptions import LLMProviderError
+from hafermilch.core.models import TokenUsage
 from hafermilch.llm.base import LLMProvider, Message, _extract_json
 
 # ---------------------------------------------------------------------------
@@ -56,22 +57,23 @@ class _StubProvider(LLMProvider):
     def supports_vision(self) -> bool:
         return False
 
-    async def complete(self, messages: list[Message]) -> str:
-        return next(self._responses)
+    async def complete(self, messages: list[Message]) -> tuple[str, TokenUsage | None]:
+        return next(self._responses), None
 
 
 @pytest.mark.asyncio
 async def test_complete_json_success_first_attempt():
     provider = _StubProvider(['{"value": "hello"}'])
-    result = await provider.complete_json([], _SimpleSchema)
+    result, usage = await provider.complete_json([], _SimpleSchema)
     assert result.value == "hello"
+    assert usage is None
 
 
 @pytest.mark.asyncio
 async def test_complete_json_retries_on_bad_json():
     # First response is invalid, second is correct
     provider = _StubProvider(["not json at all", '{"value": "recovered"}'])
-    result = await provider.complete_json([], _SimpleSchema, max_retries=1)
+    result, usage = await provider.complete_json([], _SimpleSchema, max_retries=1)
     assert result.value == "recovered"
 
 
