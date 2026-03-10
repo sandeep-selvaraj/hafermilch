@@ -5,6 +5,24 @@ All notable changes to hafermilch are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 Commits follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) spec.
 
+## [0.1.2] — 2026-03-10
+
+### CI
+
+- Adapt the tests for latest changes ([`b69f007`](b69f00744fbd9a319305e041cec588a9ce130f64))
+
+### Features
+
+- Document the agent interactions on html ([`bca7c2e`](bca7c2e0b10180e8d6fb2bacfa42d2d9752f27d7))
+- Show token usage stats ([`7301528`](7301528f6a2d6c61624baf1a6ffeed88ab741196))
+- Optimize LLM calls for minimal actions. Ex: 1 action for a Login step ([`7c7f5d9`](7c7f5d9c9734c06a44a1e8dbd1a15554b0f906c2))
+
+### Miscellaneous
+
+- Provide good info on hte logs ([`b599b24`](b599b2481c64c571156e1bb1d6ed08232341a237))
+- Build includes jinja for beautiful HTML reports ([`da9427b`](da9427b6b6eb703b961710feeef076fd14926beb))
+- Update CHANGELOG for v0.1.1 ([`001a9da`](001a9daaab3d093ad873fcc638871fee685d3e6a))
+
 ## [0.1.1] — 2026-03-09
 
 ### Documentation
