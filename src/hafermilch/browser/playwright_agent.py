@@ -137,6 +137,26 @@ class PlaywrightBrowserAgent(BaseBrowserAgent):
                 case "wait":
                     await asyncio.sleep((action.wait_ms or 1000) / 1000)
 
+                case "login":
+                    if not action.username or not action.password:
+                        raise BrowserError("'login' action requires username and password.")
+                    # Fill username: try common selectors in order
+                    for sel in [
+                        'input[type="email"]',
+                        'input[name="username"]',
+                        'input[id="username"]',
+                        'input[type="text"]',
+                    ]:
+                        if await page.locator(sel).count() > 0:
+                            await page.fill(sel, action.username, timeout=_CLICK_TIMEOUT_MS)
+                            break
+                    await page.fill(
+                        'input[type="password"]', action.password, timeout=_CLICK_TIMEOUT_MS
+                    )
+                    await page.click(
+                        'button[type="submit"], input[type="submit"]', timeout=_CLICK_TIMEOUT_MS
+                    )
+
                 case "done":
                     return
 
