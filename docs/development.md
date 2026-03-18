@@ -90,27 +90,27 @@ hafermilch/
 ├── src/hafermilch/
 │   ├── browser/
 │   │   ├── base.py             # Abstract BaseBrowserAgent
-│   │   ├── playwright_agent.py # Playwright backend
+│   │   ├── playwright_agent.py # Playwright backend (+ login action)
 │   │   ├── agent_browser.py    # agent-browser subprocess backend
 │   │   ├── context.py          # PageContext dataclass
 │   │   └── factory.py          # create_browser_agent()
 │   ├── core/
-│   │   ├── models.py           # All Pydantic models
+│   │   ├── models.py           # Pydantic models (incl. TokenUsage, Credentials)
 │   │   ├── settings.py         # pydantic-settings (env vars)
 │   │   └── exceptions.py       # Custom exception hierarchy
 │   ├── evaluation/
 │   │   ├── runner.py           # EvaluationRunner orchestrator
-│   │   └── prompter.py         # Prompt construction
+│   │   └── prompter.py         # Prompt construction (with credentials)
 │   ├── llm/
 │   │   ├── base.py             # Abstract LLMProvider
-│   │   ├── openai_provider.py  # OpenAI + Azure
-│   │   ├── gemini_provider.py  # Google Gemini
-│   │   ├── ollama_provider.py  # Ollama (local)
+│   │   ├── litellm_provider.py # LiteLLM unified provider
 │   │   └── factory.py          # LLMProviderFactory
 │   ├── personas/
-│   │   └── loader.py           # YAML loading + validation
+│   │   └── loader.py           # YAML loading + ${ENV_VAR} interpolation
 │   ├── reporting/
-│   │   └── reporter.py         # JSON + Markdown output
+│   │   ├── reporter.py         # JSON + Markdown + HTML output
+│   │   └── templates/
+│   │       └── report.html     # Jinja2 HTML report template
 │   └── cli.py                  # Typer CLI entrypoint
 ├── tests/
 │   ├── conftest.py             # Shared fixtures
@@ -130,6 +130,8 @@ hafermilch/
 ---
 
 ## Adding a new LLM provider
+
+hafermilch uses [LiteLLM](https://docs.litellm.ai/) as a unified gateway, so most providers work out of the box — just set the `provider` and `model` in the persona YAML. If you need custom behavior beyond what LiteLLM provides:
 
 1. Create `src/hafermilch/llm/myprovider.py` subclassing `LLMProvider`
 2. Implement `async def complete(self, messages)` and `supports_vision`

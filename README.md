@@ -2,7 +2,7 @@
 
 Run LLM-powered personas against any website and get structured UX critiques, scores, and recommendations.
 
-Each persona is a character — a senior engineer, a non-technical office clerk, a startup founder — backed by an LLM (OpenAI, Gemini, or Ollama). They browse your product autonomously via a real browser and report back in their own voice.
+Each persona is a character — a senior engineer, a non-technical office clerk, a startup founder — backed by an LLM (any provider via [LiteLLM](https://docs.litellm.ai/)). They browse your product autonomously via a real browser and report back in their own voice.
 
 ---
 
@@ -98,7 +98,24 @@ Run an evaluation:
 uv run hafermilch run examples/plans/saas_onboarding.yaml
 ```
 
-Reports are written to `reports/report.md` and `reports/report.json`.
+Reports are written to `reports/report.json`, `reports/report.md`, and `reports/report.html`.
+
+---
+
+## Credentials & authenticated flows
+
+Plans can include credentials for testing login-protected products. Values support `${ENV_VAR}` interpolation so secrets stay out of YAML:
+
+```yaml
+# plans/myapp.yaml
+credentials:
+  username: ${APP_USERNAME}
+  password: ${APP_PASSWORD}
+  extra:
+    account_id: "12345"
+```
+
+When credentials are present, the LLM receives them in its system prompt and can execute a single `login` action that auto-fills common form selectors — no multi-step selector guessing required.
 
 ---
 
@@ -180,11 +197,16 @@ Then reference it by `name` in any plan.
 
 ## Supported LLM providers
 
+hafermilch uses [LiteLLM](https://docs.litellm.ai/) as a unified gateway, giving you access to 100+ providers through a single configuration format. The most common providers:
+
 | Provider | Config                          | API key env var    |
 | -------- | ------------------------------- | ------------------ |
 | OpenAI   | `provider: openai`, any GPT-4o model | `OPENAI_API_KEY`   |
-| Gemini   | `provider: gemini`, e.g. `gemini-1.5-pro` | `GOOGLE_API_KEY`   |
+| Azure OpenAI | `provider: openai` + `base_url` | `AZURE_OPENAI_API_KEY` |
+| Gemini   | `provider: gemini`, e.g. `gemini-2.0-flash` | `GOOGLE_API_KEY`   |
 | Ollama   | `provider: ollama`, e.g. `llava` | none (runs locally) |
+
+Any provider supported by LiteLLM works — just set the appropriate `provider` and `model` values.
 
 Vision-capable models (GPT-4o, Gemini 1.5+, LLaVA) also receive a screenshot of each page in addition to the accessibility tree.
 
@@ -196,6 +218,12 @@ llm:
   model: llava
   base_url: "http://192.168.1.10:11434"
 ```
+
+---
+
+## Token usage & cost tracking
+
+hafermilch tracks token counts and estimated costs at every level — per step, per persona, and for the full evaluation. Costs are calculated via LiteLLM's pricing data. Usage stats appear in the terminal output and in all three report formats.
 
 ---
 
@@ -217,6 +245,8 @@ uv run hafermilch --version          Show version
 | `--headless / --no-headless` | headless | Show or hide the browser window (Playwright only) |
 | `--verbose` / `-v` | off | Enable debug logging |
 
+Reports are written as three files: `report.json`, `report.md`, and `report.html`.
+
 **`validate` options:**
 
 | Flag | Description |
@@ -229,7 +259,7 @@ uv run hafermilch --version          Show version
 ## Example output
 
 ```
-─────────────── hafermilch v0.1.0 ───────────────
+─────────────── hafermilch v0.1.2 ───────────────
 Plan:     saas_onboarding
 Target:   https://example.com
 Personas: Senior Engineer, Office Clerk, Startup Founder
@@ -243,5 +273,10 @@ Personas: Senior Engineer, Office Clerk, Startup Founder
 │ Startup Founder  │ 6.4 / 10  │       16 │
 └──────────────────┴───────────┴──────────┘
 
+Tokens: 12,450 (8,230 in / 4,220 out) · $0.042
+
 Reports written to reports/
+  report.json
+  report.md
+  report.html
 ```

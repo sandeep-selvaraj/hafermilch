@@ -57,7 +57,7 @@ scoring_dimensions:                  # (15)!
 6. **`expertise_level`** — `beginner`, `intermediate`, or `expert`. Influences tone and depth of critique.
 7. **`technical`** — `true` / `false`. Technical personas receive more detail in prompts (e.g., accessibility tree structure explanation).
 8. **`llm`** — LLM configuration block. See [LLM Providers](llm-providers.md) for details.
-9. **`provider`** — `openai`, `gemini`, or `ollama`.
+9. **`provider`** — any LiteLLM-supported provider: `openai`, `gemini`, `ollama`, `anthropic`, etc.
 10. **`model`** — model name as the provider expects it.
 11. **`temperature`** — float 0.0–2.0. Lower = more deterministic actions.
 12. **`api_key`** — optional. Falls back to the `OPENAI_API_KEY` / `GOOGLE_API_KEY` environment variable.

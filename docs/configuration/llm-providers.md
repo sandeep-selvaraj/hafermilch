@@ -4,7 +4,7 @@ icon: lucide/cpu
 
 # LLM Providers
 
-Each persona declares which LLM it uses in its `llm:` block. hafermilch supports three providers.
+Each persona declares which LLM it uses in its `llm:` block. hafermilch uses [LiteLLM](https://docs.litellm.ai/) as a unified gateway, giving you access to **100+ LLM providers** through a single configuration format. The most common providers are documented below.
 
 ---
 
@@ -116,6 +116,21 @@ Text-only models (e.g. `llama3`, `mistral`) only receive the accessibility tree.
 
 ---
 
+## Other providers
+
+Since hafermilch uses LiteLLM under the hood, any provider LiteLLM supports will work. Set the appropriate `provider` and `model` values:
+
+```yaml
+llm:
+  provider: anthropic
+  model: claude-3-5-sonnet-20241022
+  temperature: 0.4
+```
+
+Refer to the [LiteLLM provider list](https://docs.litellm.ai/docs/providers) for the full set of supported providers and their configuration.
+
+---
+
 ## Provider summary
 
 | Provider | `provider:` value | API key env var | Vision |
@@ -124,6 +139,7 @@ Text-only models (e.g. `llama3`, `mistral`) only receive the accessibility tree.
 | Azure OpenAI | `openai` | `AZURE_OPENAI_API_KEY` | Same as OpenAI |
 | Gemini | `gemini` | `GOOGLE_API_KEY` | All Gemini 1.5+ models |
 | Ollama | `ollama` | — (local) | `llava`, `bakllava` |
+| Any LiteLLM provider | see [docs](https://docs.litellm.ai/docs/providers) | varies | varies |
 
 ---
 
