@@ -107,12 +107,14 @@ Each LLM turn returns a `BrowserAction` — a structured JSON object:
 
 | Field | Description |
 |---|---|
-| `action_type` | `navigate`, `click`, `type`, `scroll`, `wait`, `done` |
+| `action_type` | `navigate`, `click`, `type`, `scroll`, `wait`, `login`, `done` |
 | `selector` | CSS selector (Playwright) or `@ref` handle (agent-browser) |
 | `url` | Target URL — only for `navigate` actions |
 | `text` | Text to type — only for `type` actions |
 | `observation` | What the persona sees on the page right now |
 | `reasoning` | Why this action is the right next step |
+
+When `action_type` is `login`, the browser agent auto-fills common login form selectors (email, username, password) and submits the form in a single atomic step — reducing the number of LLM calls needed for authenticated flows.
 
 When `action_type` is `done`, the step is considered complete and the runner moves to the next step.
 
@@ -124,10 +126,12 @@ After all personas have run, the runner produces an `EvaluationReport`:
 
 ```
 EvaluationReport
+  ├── total_usage             (TokenUsage — aggregated across all personas)
   └── PersonaReport × N
         ├── overall_score       (0–10)
         ├── summary             (LLM prose)
         ├── recommendations     (list of strings)
+        ├── total_usage         (TokenUsage — aggregated for this persona)
         ├── dimension_scores    (DimensionScore × M)
         │     ├── dimension     (name from persona YAML)
         │     ├── score         (0–10)
@@ -138,7 +142,37 @@ EvaluationReport
               ├── url
               ├── observation
               ├── reasoning
-              └── action_taken
+              ├── action_taken
+              ├── usage           (TokenUsage for this step)
+              └── screenshot      (base64 PNG, if vision model)
 ```
 
-Reports are written to `reports/report.json` and `reports/report.md`.
+### Output formats
+
+Reports are generated in three formats:
+
+- **JSON** (`report.json`) — complete data dump with all fields, ideal for programmatic consumption
+- **Markdown** (`report.md`) — human-readable table format with findings
+- **HTML** (`report.html`) — interactive, styled report with embedded screenshots, score visualizations, color-coded action badges, and token usage breakdowns. Built with Jinja2
+
+Reports are written to `reports/report.json`, `reports/report.md`, and `reports/report.html`.
+
+---
+
+## Token usage & cost tracking
+
+hafermilch tracks token consumption at every level:
+
+- **Per step** — each LLM call records prompt tokens, completion tokens, and estimated cost
+- **Per persona** — all step usages are aggregated into a `total_usage` on the `PersonaReport`
+- **Per evaluation** — all persona usages are summed into an `EvaluationReport.total_usage`
+
+Costs are calculated using LiteLLM's built-in pricing data. Token stats appear in the terminal output, and in all three report formats (JSON, Markdown, HTML).
+
+```
+TokenUsage
+  ├── prompt_tokens       (input tokens sent to the LLM)
+  ├── completion_tokens   (output tokens from the LLM)
+  ├── total_tokens        (sum)
+  └── cost_usd            (estimated cost in USD)
+```

@@ -130,7 +130,7 @@ GOOGLE_API_KEY=AIza...
 ```
 
 !!! tip "Only add what you need"
-    hafermilch only requires keys for providers used in your persona files. If all your personas use Ollama, no cloud API keys are needed.
+    hafermilch only requires keys for providers used in your persona files. If all your personas use Ollama, no cloud API keys are needed. hafermilch uses [LiteLLM](https://docs.litellm.ai/) under the hood, so any provider LiteLLM supports will work — just set the appropriate environment variables.
 
 ---
 
@@ -173,7 +173,7 @@ hafermilch will:
 4. Ask the LLM for a `BrowserAction` at every step
 5. Compile findings into a final scored report
 
-Results are printed to the terminal and written to `reports/`.
+Results are printed to the terminal (including token usage and cost) and written to `reports/` as JSON, Markdown, and HTML.
 
 ---
 

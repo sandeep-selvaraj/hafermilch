@@ -58,6 +58,38 @@ tasks:                               # (5)!
 
 ---
 
+## Credentials
+
+Plans can include credentials for testing login-protected products. Values support `${ENV_VAR}` interpolation so secrets never appear in committed YAML:
+
+```yaml
+credentials:
+  username: ${APP_USERNAME}
+  password: ${APP_PASSWORD}
+  extra:
+    account_id: "12345"
+    mfa_code: ${MFA_TOKEN}
+```
+
+When credentials are present:
+
+1. The LLM receives them in its system prompt (masked in logs)
+2. The LLM can issue a `login` action type that auto-fills common form selectors (`input[type="email"]`, `input[name="username"]`, `input[type="password"]`) and submits the form in one step
+3. This reduces multi-step login flows to a single LLM action
+
+Set the environment variables before running:
+
+```bash
+export APP_USERNAME="test@example.com"
+export APP_PASSWORD="s3cret"
+hafermilch run plans/myapp.yaml
+```
+
+!!! warning
+    Unresolved `${VAR}` placeholders will trigger a warning in the logs. hafermilch never logs the full credential values.
+
+---
+
 ## Tips for writing good instructions
 
 **Be goal-oriented, not prescriptive.** Let the LLM navigate naturally:

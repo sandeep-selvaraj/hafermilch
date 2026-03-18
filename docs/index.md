@@ -11,7 +11,7 @@ icon: lucide/home
 </div>
 
 :material-language-python: **Python 3.11+** &nbsp;·&nbsp;
-:material-robot: **OpenAI · Gemini · Ollama** &nbsp;·&nbsp;
+:material-robot: **100+ LLM providers via LiteLLM** &nbsp;·&nbsp;
 :material-web: **Playwright · agent-browser** &nbsp;·&nbsp;
 :material-package-variant: **uv · hatchling**
 
@@ -70,7 +70,7 @@ flowchart LR
 ## Example output
 
 ```
-──────────────── hafermilch v0.1.0 ────────────────
+──────────────── hafermilch v0.1.2 ────────────────
 Plan:     saas_onboarding
 Target:   https://example.com
 Personas: Senior Engineer, Office Clerk, Startup Founder
@@ -87,4 +87,4 @@ Personas: Senior Engineer, Office Clerk, Startup Founder
 Reports written to reports/
 ```
 
-Reports are written to `reports/report.md` and `reports/report.json`.
+Reports are written to `reports/report.json`, `reports/report.md`, and `reports/report.html`.

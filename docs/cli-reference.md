@@ -32,6 +32,8 @@ uv run hafermilch run <plan> [OPTIONS]
 | `--headless` / `--no-headless` | headless | Show or hide the browser window (Playwright only) |
 | `--verbose` / `-v` | off | Enable debug logging |
 
+Reports are written as three files: `report.json`, `report.md`, and `report.html`.
+
 ### Examples
 
 ```bash
@@ -107,7 +109,7 @@ Print the current version and exit.
 
 ```bash
 uv run hafermilch --version
-# hafermilch 0.1.0
+# hafermilch 0.1.2
 ```
 
 ---
