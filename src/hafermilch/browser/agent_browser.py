@@ -14,7 +14,10 @@ from hafermilch.browser.context import PageContext
 from hafermilch.core.exceptions import BrowserError
 from hafermilch.core.models import BrowserAction
 
-_POST_ACTION_DELAY_S = 0.5
+_POST_ACTION_DELAY_S = 1.0
+_NAVIGATION_SETTLE_TIMEOUT_S = 15.0
+_NAVIGATION_POLL_INTERVAL_S = 0.75
+_STABLE_POLLS_REQUIRED = 3
 
 logger = logging.getLogger(__name__)
 
@@ -43,8 +46,9 @@ class AgentBrowserAgent(BaseBrowserAgent):
         )
 
     async def start(self) -> None:
-        # The agent-browser daemon starts automatically on the first command.
-        pass
+        # The agent-browser daemon starts on the first command.
+        # Set viewport to 1280x800 so screenshots aren't mostly black padding.
+        await self._run_raw("set", "viewport", "1280", "800")
 
     async def stop(self) -> None:
         with contextlib.suppress(BrowserError):
@@ -56,10 +60,23 @@ class AgentBrowserAgent(BaseBrowserAgent):
 
     async def capture(self) -> PageContext:
         try:
+            # Take an initial snapshot, then wait briefly and re-snapshot to
+            # ensure the page has finished rendering before we screenshot.
             snapshot_raw = await self._run("snapshot", "--compact")
             snapshot_data = json.loads(snapshot_raw)
             data = snapshot_data.get("data", {})
             tree_text = data.get("snapshot") or ""
+
+            # Quick stability check: re-snapshot after a short pause and use
+            # the newer version if the tree changed (page was still loading).
+            await asyncio.sleep(_NAVIGATION_POLL_INTERVAL_S)
+            raw2 = await self._run("snapshot", "--compact")
+            data2 = json.loads(raw2).get("data", {})
+            tree2 = data2.get("snapshot") or ""
+            if tree2 and tree2 != tree_text:
+                # Page was still loading — use the fresher snapshot
+                data = data2
+                tree_text = tree2
 
             # Prefer the URL reported by agent-browser over our tracked value
             reported_url = data.get("url") or data.get("currentUrl") or ""
@@ -93,7 +110,9 @@ class AgentBrowserAgent(BaseBrowserAgent):
                 case "click":
                     if not action.selector:
                         raise BrowserError("'click' action requires a selector (@ref).")
+                    url_before = self._current_url
                     await self._run("click", action.selector)
+                    await self._wait_for_page_settle(url_before)
 
                 case "type":
                     if not action.selector or action.text is None:
@@ -103,8 +122,10 @@ class AgentBrowserAgent(BaseBrowserAgent):
                 case "navigate":
                     if not action.url:
                         raise BrowserError("'navigate' action requires a url.")
+                    url_before = self._current_url
                     await self._run("open", action.url)
                     self._current_url = action.url
+                    await self._wait_for_page_settle(url_before)
 
                 case "scroll":
                     direction = action.direction or "down"
@@ -117,7 +138,9 @@ class AgentBrowserAgent(BaseBrowserAgent):
                 case "login":
                     if not action.username or not action.password:
                         raise BrowserError("'login' action requires username and password.")
+                    url_before = self._current_url
                     await self._login(action.username, action.password)
+                    await self._wait_for_page_settle(url_before)
 
                 case "done":
                     return
@@ -137,6 +160,58 @@ class AgentBrowserAgent(BaseBrowserAgent):
         await self._run("fill", user_ref, username)
         await self._run("fill", pass_ref, password)
         await self._run("click", submit_ref)
+
+    async def _wait_for_page_settle(self, url_before: str) -> None:
+        """Wait for the page to settle after an action that may trigger navigation.
+
+        Polls the agent-browser snapshot until either the URL changes from
+        *url_before* and the tree stabilises, or the tree is identical across
+        several consecutive polls (indicating the page has finished loading).
+        """
+        await asyncio.sleep(_POST_ACTION_DELAY_S)
+
+        prev_tree: str | None = None
+        stable_count = 0
+        navigated = False
+        elapsed = _POST_ACTION_DELAY_S
+
+        while elapsed < _NAVIGATION_SETTLE_TIMEOUT_S:
+            try:
+                raw = await self._run("snapshot", "--compact")
+                data = json.loads(raw).get("data", {})
+                current_url = data.get("url") or data.get("currentUrl") or ""
+                tree = data.get("snapshot") or ""
+
+                if current_url:
+                    self._current_url = current_url
+
+                if current_url and current_url != url_before:
+                    navigated = True
+
+                # Check tree stability
+                if prev_tree is not None and tree == prev_tree and tree:
+                    stable_count += 1
+                else:
+                    stable_count = 0
+
+                if stable_count >= _STABLE_POLLS_REQUIRED:
+                    logger.debug("Snapshot stabilised on %s.", current_url or url_before)
+                    return
+
+                # If navigated and tree has been stable for at least 1 poll, accept
+                if navigated and stable_count >= 1 and tree:
+                    logger.debug("Page navigated to %s and stabilised.", current_url)
+                    return
+
+                prev_tree = tree
+            except Exception:
+                stable_count = 0
+                prev_tree = None  # reset on error — page is mid-transition
+
+            await asyncio.sleep(_NAVIGATION_POLL_INTERVAL_S)
+            elapsed += _NAVIGATION_POLL_INTERVAL_S
+
+        logger.debug("Page settle timeout reached (%.1fs), proceeding.", elapsed)
 
     async def _get_title(self) -> str:
         try:
