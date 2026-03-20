@@ -79,7 +79,8 @@ async def test_capture_uses_tracked_url():
     agent = AgentBrowserAgent()
     agent._current_url = "https://example.com"
 
-    responses = [_snapshot_response(), _title_response()]
+    # capture() takes two snapshots (stability check) + one title call
+    responses = [_snapshot_response(), _snapshot_response(), _title_response()]
     call_count = 0
 
     async def fake_exec(*args, **kwargs):
@@ -105,7 +106,8 @@ async def test_capture_handles_null_title_gracefully():
     agent._current_url = "https://example.com"
 
     null_title = json.dumps({"success": True, "data": None})
-    responses = [_snapshot_response(), null_title]
+    # capture() takes two snapshots (stability check) + one title call
+    responses = [_snapshot_response(), _snapshot_response(), null_title]
     call_count = 0
 
     async def fake_exec(*args, **kwargs):
