@@ -32,11 +32,14 @@ class AgentBrowserAgent(BaseBrowserAgent):
         npm install -g agent-browser
     """
 
-    def __init__(self) -> None:
+    def __init__(self, record: bool = False, record_dir: Path | None = None) -> None:
         self._session = f"hafermilch-{uuid.uuid4().hex[:8]}"
         # Track the current URL ourselves — more reliable than calling `get url`
         # because agent-browser may return it in an unpredictable JSON shape.
         self._current_url: str = ""
+        self._record = record
+        self._record_dir = record_dir or Path("reports")
+        self._recording_path: Path | None = None
 
     @property
     def selector_hint(self) -> str:
@@ -50,7 +53,17 @@ class AgentBrowserAgent(BaseBrowserAgent):
         # Set viewport to 1280x800 so screenshots aren't mostly black padding.
         await self._run_raw("set", "viewport", "1280", "800")
 
+        if self._record:
+            self._record_dir.mkdir(parents=True, exist_ok=True)
+            self._recording_path = self._record_dir / f"recording-{self._session}.webm"
+            await self._run_raw("record", "start", str(self._recording_path))
+            logger.info("Recording to %s", self._recording_path)
+
     async def stop(self) -> None:
+        if self._record:
+            with contextlib.suppress(BrowserError):
+                await self._run_raw("record", "stop")
+                logger.info("Recording saved to %s", self._recording_path)
         with contextlib.suppress(BrowserError):
             await self._run("close")
 
@@ -64,14 +77,14 @@ class AgentBrowserAgent(BaseBrowserAgent):
             # ensure the page has finished rendering before we screenshot.
             snapshot_raw = await self._run("snapshot", "--compact")
             snapshot_data = json.loads(snapshot_raw)
-            data = snapshot_data.get("data", {})
+            data = snapshot_data.get("data") or {}
             tree_text = data.get("snapshot") or ""
 
             # Quick stability check: re-snapshot after a short pause and use
             # the newer version if the tree changed (page was still loading).
             await asyncio.sleep(_NAVIGATION_POLL_INTERVAL_S)
             raw2 = await self._run("snapshot", "--compact")
-            data2 = json.loads(raw2).get("data", {})
+            data2 = json.loads(raw2).get("data") or {}
             tree2 = data2.get("snapshot") or ""
             if tree2 and tree2 != tree_text:
                 # Page was still loading — use the fresher snapshot
@@ -154,8 +167,10 @@ class AgentBrowserAgent(BaseBrowserAgent):
     async def _login(self, username: str, password: str) -> None:
         """Fill the login form and submit it in one sequence."""
         snapshot_raw = await self._run("snapshot", "--compact")
-        tree = json.loads(snapshot_raw).get("data", {}).get("snapshot") or ""
-        user_ref, pass_ref, submit_ref = _parse_login_refs(tree)
+        data = json.loads(snapshot_raw).get("data", {})
+        tree = data.get("snapshot") or ""
+        refs = data.get("refs") or {}
+        user_ref, pass_ref, submit_ref = _parse_login_refs(tree, refs)
         logger.info("Login — user=%s pass=%s submit=%s", user_ref, pass_ref, submit_ref)
         await self._run("fill", user_ref, username)
         await self._run("fill", pass_ref, password)
@@ -262,38 +277,59 @@ class AgentBrowserAgent(BaseBrowserAgent):
         return out
 
 
-def _parse_login_refs(tree: str) -> tuple[str, str, str]:
-    """Extract @refs for username field, password field, and submit button."""
-    # All textboxes in order: [ref=eN]
-    textboxes = re.findall(r'textbox\s+"([^"]+)"\s+\[ref=(e\d+)\]', tree, re.IGNORECASE)
+def _parse_login_refs(tree: str, refs: dict | None = None) -> tuple[str, str, str]:
+    """Extract @refs for username field, password field, and submit button.
 
-    user_ref = pass_ref = submit_ref = None
+    Language-agnostic: uses the structured ``refs`` dict (role-based) when
+    available, falling back to regex on the text tree.  Login forms almost
+    universally follow the pattern textbox → textbox → button, so positional
+    heuristics work across languages.
+    """
+    refs = refs or {}
 
-    for label, ref in textboxes:
-        label_l = label.lower()
-        if pass_ref is None and "password" in label_l:
-            pass_ref = ref
-        elif user_ref is None and any(k in label_l for k in ("user", "email", "login")):
-            user_ref = ref
+    # ── Build ordered lists from the refs dict ──────────────────────────
+    # refs keys are like "e1", "e2", … in document order.
+    textboxes: list[str] = []  # ref ids of textbox/input elements
+    buttons: list[str] = []  # ref ids of button elements
 
-    # Fallback: first textbox = username, second = password
-    if user_ref is None and textboxes:
-        user_ref = textboxes[0][1]
-    if pass_ref is None and len(textboxes) > 1:
-        pass_ref = textboxes[1][1]
+    for ref_id in sorted(refs, key=lambda r: int(r[1:]) if r[1:].isdigit() else 0):
+        info = refs[ref_id]
+        role = (info.get("role") or "").lower()
+        if role in ("textbox", "input", "searchbox"):
+            textboxes.append(ref_id)
+        elif role == "button":
+            buttons.append(ref_id)
 
-    # Submit button: "Sign In", "Log In", "Login", "Submit" etc.
-    m = re.search(
-        r'button\s+"(sign\s*in|log\s*in|login|submit)[^"]*"\s+\[ref=(e\d+)\]',
-        tree,
-        re.IGNORECASE,
-    )
-    if m:
-        submit_ref = m.group(2)
+    # ── If refs dict was empty/missing, fall back to tree regex ─────────
+    if not textboxes:
+        for _, _, ref_id in re.findall(
+            r'(textbox|input)\s+"[^"]*?"\s+\[ref=(e\d+)\]', tree, re.IGNORECASE
+        ):
+            textboxes.append(ref_id)
+    if not buttons:
+        for _, ref_id in re.findall(r'button\s+"[^"]*?"\s+\[ref=(e\d+)\]', tree, re.IGNORECASE):
+            buttons.append(ref_id)
+
+    # ── Assign: first textbox = username, second = password ─────────────
+    user_ref = textboxes[0] if len(textboxes) >= 1 else None
+    pass_ref = textboxes[1] if len(textboxes) >= 2 else None
+
+    # ── Submit: first button after the password field ───────────────────
+    submit_ref = None
+    if pass_ref is not None and buttons:
+        pass_idx = int(pass_ref[1:]) if pass_ref[1:].isdigit() else 0
+        for btn in buttons:
+            btn_idx = int(btn[1:]) if btn[1:].isdigit() else 0
+            if btn_idx > pass_idx:
+                submit_ref = btn
+                break
+    # Last resort: first button
+    if submit_ref is None and buttons:
+        submit_ref = buttons[0]
 
     if not user_ref or not pass_ref or not submit_ref:
-        fields = [("username", user_ref), ("password", pass_ref), ("submit", submit_ref)]
-        missing = [n for n, v in fields if not v]
+        fields_status = [("username", user_ref), ("password", pass_ref), ("submit", submit_ref)]
+        missing = [n for n, v in fields_status if not v]
         raise BrowserError(f"Could not find login form fields in snapshot: missing {missing}")
 
     return f"@{user_ref}", f"@{pass_ref}", f"@{submit_ref}"

@@ -59,6 +59,13 @@ def run(
         bool,
         typer.Option("--headless/--no-headless", help="Run browser in headless mode."),
     ] = True,
+    record: Annotated[
+        bool,
+        typer.Option(
+            "--record/--no-record",
+            help="Record browser session as WebM video (agent-browser only).",
+        ),
+    ] = False,
     verbose: Annotated[
         bool,
         typer.Option("--verbose", "-v"),
@@ -86,6 +93,8 @@ def run(
             EvaluationRunner(
                 browser_backend=browser,
                 headless=headless,
+                record=record,
+                output_dir=output_dir,
             ).run(evaluation_plan, resolved)
         )
     except HafermilchError as exc:

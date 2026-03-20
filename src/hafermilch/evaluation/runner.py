@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -44,9 +45,13 @@ class EvaluationRunner:
         self,
         browser_backend: BrowserBackend = "playwright",
         headless: bool = True,
+        record: bool = False,
+        output_dir: Path | None = None,
     ) -> None:
         self._browser_backend = browser_backend
         self._headless = headless
+        self._record = record
+        self._output_dir = output_dir
         self._prompter = Prompter()
 
     async def run(
@@ -87,7 +92,12 @@ class EvaluationRunner:
         provider = LLMProviderFactory.create(persona.llm)
         all_findings: list[Finding] = []
 
-        agent = create_browser_agent(self._browser_backend, self._headless)
+        agent = create_browser_agent(
+            self._browser_backend,
+            self._headless,
+            record=self._record,
+            record_dir=self._output_dir,
+        )
         async with agent:
             for task in plan.tasks:
                 start_url = task.start_url or plan.target_url
