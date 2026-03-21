@@ -2,9 +2,6 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Any
-
-from pydantic import BaseModel, Field
 
 from hafermilch.browser.base import BaseBrowserAgent
 from hafermilch.browser.factory import BrowserBackend, create_browser_agent
@@ -16,6 +13,7 @@ from hafermilch.core.models import (
     EvaluationPlan,
     EvaluationReport,
     Finding,
+    LLMReport,
     Persona,
     PersonaReport,
     Task,
@@ -24,18 +22,9 @@ from hafermilch.core.models import (
 )
 from hafermilch.evaluation.prompter import Prompter
 from hafermilch.llm.base import LLMProvider
-from hafermilch.llm.factory import LLMProviderFactory
+from hafermilch.llm.factory import create_llm_provider
 
 logger = logging.getLogger(__name__)
-
-
-class _LLMReport(BaseModel):
-    """Schema for the LLM's final evaluation response."""
-
-    overall_score: float = Field(ge=0, le=10)
-    summary: str
-    dimension_scores: list[dict[str, Any]]
-    recommendations: list[str]
 
 
 class EvaluationRunner:
@@ -78,8 +67,7 @@ class EvaluationRunner:
 
         total_usage: TokenUsage | None = None
         for pr in persona_reports:
-            if pr.total_usage is not None:
-                total_usage = (total_usage + pr.total_usage) if total_usage else pr.total_usage
+            total_usage = TokenUsage.accumulate(total_usage, pr.total_usage)
 
         return EvaluationReport(
             plan_name=plan.name,
@@ -89,7 +77,7 @@ class EvaluationRunner:
         )
 
     async def _run_persona(self, persona: Persona, plan: EvaluationPlan) -> PersonaReport:
-        provider = LLMProviderFactory.create(persona.llm)
+        provider = create_llm_provider(persona.llm)
         all_findings: list[Finding] = []
 
         agent = create_browser_agent(
@@ -201,7 +189,7 @@ class EvaluationRunner:
         )
 
         messages = self._prompter.build_report_prompt(persona, findings_summary)
-        llm_report, report_usage = await provider.complete_json(messages, _LLMReport)
+        llm_report, report_usage = await provider.complete_json(messages, LLMReport)
 
         dimension_scores = [
             DimensionScore(
@@ -212,13 +200,10 @@ class EvaluationRunner:
             for d in llm_report.dimension_scores
         ]
 
-        # Accumulate usage: all step findings + final report call
         total_usage: TokenUsage | None = None
         for f in findings:
-            if f.usage is not None:
-                total_usage = (total_usage + f.usage) if total_usage else f.usage
-        if report_usage is not None:
-            total_usage = (total_usage + report_usage) if total_usage else report_usage
+            total_usage = TokenUsage.accumulate(total_usage, f.usage)
+        total_usage = TokenUsage.accumulate(total_usage, report_usage)
 
         return PersonaReport(
             persona_name=persona.name,
