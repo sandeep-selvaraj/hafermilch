@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -24,6 +24,13 @@ class TokenUsage(BaseModel):
             total_tokens=self.total_tokens + other.total_tokens,
             cost_usd=(self.cost_usd or 0.0) + (other.cost_usd or 0.0) if both_have_cost else None,
         )
+
+    @staticmethod
+    def accumulate(current: TokenUsage | None, new: TokenUsage | None) -> TokenUsage | None:
+        """Combine two optional usages, returning None only if both are None."""
+        if new is None:
+            return current
+        return (current + new) if current else new
 
 
 # ---------------------------------------------------------------------------
@@ -197,3 +204,12 @@ class EvaluationReport(BaseModel):
     persona_reports: list[PersonaReport]
     total_usage: TokenUsage | None = None
     generated_at: datetime = Field(default_factory=datetime.now)
+
+
+class LLMReport(BaseModel):
+    """Schema for the LLM's final evaluation response."""
+
+    overall_score: float = Field(ge=0, le=10)
+    summary: str
+    dimension_scores: list[dict[str, Any]]
+    recommendations: list[str]

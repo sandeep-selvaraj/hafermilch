@@ -6,7 +6,7 @@ from pathlib import Path
 
 from jinja2 import Environment, select_autoescape
 
-from hafermilch.core.models import EvaluationReport
+from hafermilch.core.models import EvaluationReport, PersonaReport
 
 _ACTION_BADGE: dict[str, tuple[str, str]] = {
     "click": ("#dbeafe", "#1d4ed8"),
@@ -90,7 +90,7 @@ class Reporter:
 
         return "\n".join(lines)
 
-    def _render_persona_section(self, pr) -> list[str]:  # type: ignore[no-untyped-def]
+    def _render_persona_section(self, pr: PersonaReport) -> list[str]:
         lines: list[str] = [
             "---",
             "",
