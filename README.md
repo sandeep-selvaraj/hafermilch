@@ -69,6 +69,14 @@ Best for:
 uv run hafermilch run examples/plans/saas_onboarding.yaml --browser agent-browser
 ```
 
+You can watch the agent navigate your site in real-time by starting the agent-browser dashboard before running an evaluation:
+
+```bash
+agent-browser dashboard start
+```
+
+This opens a live view of every action the agent takes — useful for debugging plans or just seeing what the persona actually does.
+
 ### Which one to pick?
 
 | | Playwright | agent-browser |
@@ -243,9 +251,10 @@ uv run hafermilch --version          Show version
 | `--output` / `-o` | `reports` | Directory to write reports into |
 | `--browser` / `-b` | `playwright` | Browser backend: `playwright` or `agent-browser` |
 | `--headless / --no-headless` | headless | Show or hide the browser window (Playwright only) |
+| `--record / --no-record` | off | Save a `.webm` recording of each session to the output directory (agent-browser only) |
 | `--verbose` / `-v` | off | Enable debug logging |
 
-Reports are written as three files: `report.json`, `report.md`, and `report.html`.
+Reports are written as three files: `report.json`, `report.md`, and `report.html`. The HTML report is a self-contained file you can open in any browser — no server needed.
 
 **`validate` options:**
 
